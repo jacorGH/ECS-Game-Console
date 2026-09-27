@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4c3d78">
+<title>Data Console — Cart Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --shell: #5b4a86; --shell-lo: #3c3063; --ink: #1d1830; --soft: #5a5274; --panel: #e6e2ef; --paper: #f7f5fb; --line: #d3cce3;
+  --key: #5b3f9e; --str: #2c6e49; --num: #b3541e; --f: #1f6fa8; --mark: #fbf236;
+  --ui: "Chakra Petch", "Segoe UI", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --ink: #ece8f7; --soft: #b3aacb; --panel: #221d33; --paper: #2b2540; --line: #3f3659; --key: #c3a9ff; --str: #8fd6a8; --num: #f3a66f; --f: #7cc4f5; }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: 118px; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--panel); color: var(--ink); font: 16px/1.55 var(--ui); }
+a { color: var(--key); }
+header.top {
+  position: sticky; top: 0; z-index: 10; background: var(--shell); color: #f1ecff;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px; box-shadow: 0 2px 12px rgba(0,0,0,.2);
+}
+.top-row { display: flex; align-items: center; gap: 10px; max-width: 980px; margin: 0 auto; }
+.top h1 { font-size: 1.05rem; margin: 0; white-space: nowrap; letter-spacing: .02em; }
+.top h1 span { opacity: .7; font-weight: 500; }
+.top a.back { margin-left: auto; color: #e6ddff; font-weight: 600; font-size: .9rem; text-decoration: none; white-space: nowrap; }
+.search-row { display: flex; gap: 8px; max-width: 980px; margin: 8px auto 0; }
+#q { flex: 1; min-width: 0; border: 0; border-radius: 10px; padding: 10px 12px; font: 16px var(--ui); background: #f5f2fc; color: #1d1830; }
+#toc-btn { border: 0; border-radius: 10px; padding: 0 14px; font: 600 .95rem var(--ui); background: rgba(255,255,255,.14); color: #fff; }
+#count { color: #d8cff5; font-size: .82rem; align-self: center; white-space: nowrap; }
+nav#toc { display: none; max-width: 980px; margin: 8px auto 0; columns: 2 150px; gap: 14px; padding: 8px 4px 4px; }
+nav#toc.open { display: block; }
+nav#toc a { display: block; color: #fff; text-decoration: none; padding: 4px 6px; border-radius: 6px; font-weight: 600; font-size: .92rem; break-inside: avoid; }
+nav#toc a:hover { background: rgba(255,255,255,.12); }
+main { max-width: 980px; margin: 0 auto; padding: 8px 14px 60px; }
+section { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 12px; margin: 14px 0; }
+section[hidden] { display: none; }
+h2 { font-size: 1.3rem; margin: 0 0 4px; line-height: 1.25; }
+h3 { font-size: 1.02rem; margin: 18px 0 6px; }
+p { margin: 6px 0 10px; }
+.lead { color: var(--soft); }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+code { background: var(--panel); border-radius: 5px; padding: 1px 5px; }
+.tbl { overflow-x: auto; margin: 6px 0 12px; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th { text-align: left; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { white-space: nowrap; font-family: var(--mono); font-size: .86rem; color: var(--key); font-weight: 500; }
+td.ex, td .ex { font-family: var(--mono); font-size: .82rem; color: var(--str); }
+tr[hidden] { display: none; }
+.pre { position: relative; margin: 8px 0 12px; }
+pre { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font: 13px/1.5 var(--mono); white-space: pre; }
+pre .k { color: var(--key); } pre .s { color: var(--str); } pre .n { color: var(--num); } pre .f { color: var(--f); }
+.copy { position: absolute; top: 6px; right: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 7px; font: 600 .75rem var(--ui); padding: 4px 9px; }
+.pal { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; margin: 8px 0 12px; }
+.sw { border-radius: 8px; border: 1px solid var(--line); overflow: hidden; background: var(--paper); font-size: .78rem; }
+.sw i { display: block; height: 30px; }
+.sw b { display: flex; justify-content: space-between; padding: 3px 6px; font-family: var(--mono); font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.chips code { padding: 3px 8px; }
+.note { border-left: 3px solid var(--shell); background: var(--panel); padding: 8px 12px; border-radius: 0 8px 8px 0; font-size: .93rem; }
+mark { background: var(--mark); color: #1d1830; border-radius: 3px; }
+@media (max-width: 600px) {
+  table, tbody, tr, td { display: block; width: 100%; }
+  tr:first-child { display: none; }
+  tr { padding: 9px 2px; border-bottom: 1px solid var(--line); }
+  tr:last-child { border-bottom: 0; }
+  td { border: 0; padding: 1px 0; }
+  td:first-child { white-space: normal; font-size: .9rem; }
+  td.ex { font-size: .8rem; opacity: .95; overflow-wrap: anywhere; }
+  td.ex::before { content: "e.g. "; color: var(--soft); font-family: var(--ui); }
+  .tbl { overflow: visible; }
+}
+.empty { text-align: center; color: var(--soft); padding: 40px 0; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-row"><h1>Data Console <span>cart reference</span></h1><a class="back" href="./">← Console</a></div>
+  <div class="search-row">
+    <input id="q" type="search" placeholder="Search every option — try “break”, “loot”, “kart”" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Search the reference">
+    <button id="toc-btn" aria-expanded="false" aria-controls="toc">Sections</button>
+  </div>
+  <nav id="toc" aria-label="Sections"></nav>
+</header>
+
+<main id="doc">
+
+<section id="start" data-title="Cart basics">
+  <h2>Cart basics</h2>
+  <p class="lead">A game (a <em>cart</em>) is one JSON object. There is no code: entities are built from components, logic is written as rules, and values can be formulas. Names link things together — a prefab uses a sprite by name, a scene places prefabs by name, a rule changes scene by name.</p>
+  <div class="pre"><pre>{
+  "format": "DCART-1",
+  "meta":    { … },   <span class="lead">title, screen size, first scene</span>
+  "vars":    { … },   <span class="lead">global variables</span>
+  "sprites": { … },   <span class="lead">pixel art or image files</span>
+  "sounds":  { … },   "music": { … },
+  "tiles":   { … },   <span class="lead">one-character map pieces</span>
+  "prefabs": { … },   <span class="lead">entity templates made of components</span>
+  "scenes":  { … },   <span class="lead">levels, menus, rooms</span>
+  "hud":     [ … ],   <span class="lead">on-screen text, hearts, bars</span>
+  "rules":   [ … ]    <span class="lead">game-wide logic</span>
+}</pre></div>
+  <div class="note">JSON rules: straight double quotes, no comments, no trailing commas. The Code tab’s <b>Clean up</b> fixes most mistakes, and <b>Check</b> lists anything that doesn’t link up.</div>
+</section>
+
+<section id="meta" data-title="meta">
+  <h2>meta</h2>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>title</td><td>Name shown on the console and in the cart list.</td><td class="ex">"Flag of Gold"</td></tr>
+  <tr><td>author</td><td>Your name.</td><td class="ex">"Jacor"</td></tr>
+  <tr><td>width / height</td><td>Screen size in pixels (64–640 × 64–480). 256×224 is SNES-sized.</td><td class="ex">256, 224</td></tr>
+  <tr><td>start</td><td>The first scene.</td><td class="ex">"title"</td></tr>
+  <tr><td>assets</td><td>Folder for image and sound files. Default <code>assets/</code>.</td><td class="ex">"carts/kart/"</td></tr>
+  <tr><td>singletons</td><td>Prefabs that exist once for the whole game and follow you through every scene (clocks, quest managers, a companion).</td><td class="ex">["clock"]</td></tr>
+  <tr><td>persist</td><td>What the <code>save</code> action stores: <code>true</code> for all variables, or a list of names.</td><td class="ex">["day","inv","gold"]</td></tr>
+  <tr><td>coop</td><td>Prefab to use for extra players instead of copying player 1.</td><td class="ex">{"1":"hero_blue"}</td></tr>
+  <tr><td>pause</td><td><code>false</code> stops Start from pausing.</td><td class="ex">false</td></tr>
+  <tr><td>autoDoors</td><td><code>false</code> turns off arriving at the matching doorway (see Doors).</td><td class="ex">false</td></tr>
+  <tr><td>haptics</td><td><code>false</code> turns off the automatic buzzes.</td><td class="ex">false</td></tr>
+  <tr><td>motion</td><td><code>true</code> if the game reads tilt/shake; <code>"steer"</code> also steers with tilt. Asks permission on first tap.</td><td class="ex">"steer"</td></tr>
+  </table></div>
+</section>
+
+<section id="colors" data-title="Colours & palette">
+  <h2>Colours &amp; palette</h2>
+  <p>Anywhere a colour is expected you can use a palette number (0–31) or a <code>"#rrggbb"</code> string. In sprite pixel rows each colour has one character, shown bottom-left of each swatch; <code>.</code> is transparent. A cart can replace the palette with <code>"palette": ["#000000", …]</code>.</p>
+  <div class="pal" id="pal"></div>
+</section>
+
+<section id="sprites" data-title="sprites">
+  <h2>sprites</h2>
+  <div class="pre"><pre>"sprites": {
+  "hero": { "w": 8, "h": 8, "scale": 2, "frames": [
+    ["..rrrr..", ".rrrrrr.", "..7707..", "..7777..", ".hhhhhh.", "7.hhhh.7", "..h..h..", ".44..44."],
+    ["..rrrr..", ".rrrrrr.", "..7707..", "..7777..", ".hhhhhh.", "7.hhhh.7", ".h....h.", "44....44"]
+  ]},
+  "boss": { "src": "boss.png", "w": 32, "h": 32 }
+}</pre></div>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th></tr>
+  <tr><td>w / h</td><td>Frame size in pixels.</td></tr>
+  <tr><td>frames</td><td>List of frames; each frame is <code>h</code> strings of <code>w</code> palette characters. Draw side views facing right — they flip automatically.</td></tr>
+  <tr><td>scale</td><td>Draw bigger in game (8×8 art at scale 2 fills a 16px tile).</td></tr>
+  <tr><td>src</td><td>Load an image from the assets folder instead; it’s cut into w×h frames left→right, top→bottom.</td></tr>
+  <tr><td>stack</td><td><code>true</code> makes this a <a href="#stacking">sprite stack</a> — each frame becomes several pixel-art layers drawn with a small vertical offset for a chunky 3D look.</td></tr>
+  </table></div>
+
+  <h3 id="stacking">Sprite stacking</h3>
+  <p class="lead">Draw a "totem" of flat pixel-art slices, offset upward by a few pixels each, to fake a solid 3D/voxel object — the technique behind games like Zaxxon and many top-down voxel racers. No 3D modelling, just more pixel art.</p>
+  <div class="pre"><pre>"rock": { "stack": true, "w": 8, "h": 8, "frames": [
+  [ ["........","..nnnn..","..nnnn..","..nnnn..","..nnnn..","..nnnn..","........","........"],
+    ["........","...nn...","...nn...","...nn...","...nn...","...nn...","........","........"],
+    ["........","...ll...","...ll...","........","........","........","........","........"] ]
+]}</pre></div>
+  <p>Each element of <code>frames</code> is now a STACK: a list of layers, bottom to top, each an ordinary <code>h</code>-row pixel-art layer. A plain (non-stack) sprite has one nesting level less — <code>frames: [ frame, frame, … ]</code> where a frame is rows; a stack sprite has one level more — <code>frames: [ stack, stack, … ]</code> where a stack is <code>[ layer, layer, … ]</code> and a layer is rows.</p>
+  <p>For a rotating object (a kart, a boulder that can be viewed from any side), give it several stacks and pair it with <code>"angles"</code> (see <a href="#mode7">Mode 7</a>) — each angle is simply a separately pre-drawn stack, so nothing has to be sheared or faked at runtime; this is also how sprite-stacked vehicles work in Mode 7 racers. A single stack with no <code>angles</code> works anywhere (top-down, platformer) as a static chunky object — trees, pillars, crates, rocks. Stack sprites can't be hand-edited in the Sprites tab yet; build them in the Code tab or with the AI generator.</p>
+</section>
+
+<section id="sounds" data-title="sounds & music">
+  <h2>sounds &amp; music</h2>
+  <div class="tbl"><table><tr><th>Sound key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>wave</td><td>square, triangle, sawtooth, sine or noise.</td><td class="ex">"square"</td></tr>
+  <tr><td>f</td><td>Pitch in Hz: one value, a slide <code>[from,to]</code>, or 3+ values for an arpeggio.</td><td class="ex">[300, 700]</td></tr>
+  <tr><td>d</td><td>Length in seconds.</td><td class="ex">0.15</td></tr>
+  <tr><td>v</td><td>Volume 0–1.</td><td class="ex">0.2</td></tr>
+  <tr><td>src</td><td>Play a file from the assets folder instead.</td><td class="ex">"jump.wav"</td></tr>
+  </table></div>
+  <p>Sounds named <code>jump</code>, <code>hurt</code>, <code>die</code>, <code>stomp</code> and <code>talk</code> play automatically at those moments.</p>
+  <div class="pre"><pre>"music": { "theme": { "bpm": 120, "div": 2, "loop": true, "tracks": [
+  { "wave": "square",   "v": 0.07, "notes": "C5 - E5 G5 A5 . G5 E5" },
+  { "wave": "triangle", "v": 0.12, "notes": "C3 - - - G2 - - -" }
+]}}</pre></div>
+  <p>Notes are <code>C4</code>, <code>F#5</code>, <code>Bb3</code>; <code>.</code> is a rest and <code>-</code> holds the previous note. With <code>div: 2</code> each token is an eighth note. Give tracks the same number of tokens. A <code>noise</code> track makes drums.</p>
+</section>
+
+<section id="tiles" data-title="tiles">
+  <h2>tiles</h2>
+  <p class="lead">One-character keys used in scene maps. <code>.</code> is always empty.</p>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>sprite</td><td>Art for the tile (first frame; more frames animate).</td><td class="ex">"brick"</td></tr>
+  <tr><td>color</td><td>A flat colour instead of a sprite.</td><td class="ex">15</td></tr>
+  <tr><td>fps</td><td>Animation speed for multi-frame tiles.</td><td class="ex">3</td></tr>
+  <tr><td>solid</td><td>Blocks movement.</td><td class="ex">true</td></tr>
+  <tr><td>oneWay</td><td>Stand on it, jump up through it.</td><td class="ex">true</td></tr>
+  <tr><td>hurt</td><td>Damage on touch (spikes, lava edges).</td><td class="ex">1</td></tr>
+  <tr><td>kill</td><td>Instant death.</td><td class="ex">true</td></tr>
+  <tr><td>layer</td><td><code>1</code> draws it in front of characters (tree tops, arches).</td><td class="ex">1</td></tr>
+  <tr><td>break</td><td>Attacks can destroy it — see <a href="#break">Breakable tiles</a>. <code>true</code> for defaults.</td><td class="ex">{"drop":"coin","effect":"leaves"}</td></tr>
+  <tr><td>hit</td><td>Runs when a player bumps it from below: <code>become</code>, <code>spawn</code>, <code>drop</code>, <code>effect</code>, <code>sound</code>, <code>burst</code>, <code>do</code>.</td><td class="ex">{"become":"U","drop":"coin"}</td></tr>
+  <tr><td>slow</td><td>Top-speed multiplier for karts and racers (grass, sand).</td><td class="ex">0.45</td></tr>
+  <tr><td>boost</td><td>Seconds of 1.5× speed when driven over.</td><td class="ex">1</td></tr>
+  <tr><td>jump</td><td>Launches anything driving over it into the air (ramps).</td><td class="ex">170</td></tr>
+  <tr><td>sound</td><td>Played by boost and jump tiles.</td><td class="ex">"boost"</td></tr>
+  <tr><td>any component</td><td>Give a tile <code>warp</code>, <code>talk</code>, <code>pickup</code>, <code>ai</code>, <code>emitter</code>, <code>tags</code>… and it becomes an entity on that square. <code>"entity": true</code> forces it.</td><td class="ex">"D": {"sprite":"door","warp":{"scene":"cave"}}</td></tr>
+  </table></div>
+</section>
+
+<section id="break" data-title="Breakable tiles">
+  <h2>Breakable tiles</h2>
+  <p>Anything with a <code>hurt</code> component — a sword slash, an arrow, a bomb blast — damages breakable tiles it overlaps, once per swing.</p>
+  <div class="pre"><pre>"b": { "sprite": "bush", "solid": true, "break": {
+  "effect": "leaf_burst", "sound": "cut",
+  "drop": { "one": [ {"prefab":"heart","weight":1}, {"prefab":"coin","weight":3}, {"prefab":null,"weight":4} ] }
+}},
+"c": { "sprite": "crate", "solid": true, "break": { "hp": 3, "hitSound": "thud", "become": "_", "drop": [ {"prefab":"coin","count":[2,4]} ] } },
+"X": { "sprite": "cracked_wall", "solid": true, "break": { "by": ["bomb"], "effect": "dust" } }</pre></div>
+  <div class="tbl"><table><tr><th>break key</th><th>What it does</th><th>Default</th></tr>
+  <tr><td>hp</td><td>Hits needed (each hit deals the attack’s <code>hurt.damage</code>).</td><td class="ex">1</td></tr>
+  <tr><td>by</td><td>Tags allowed to break it — checked on the attack and on whoever made the attack. <code>"any"</code> allows everything.</td><td class="ex">["player"]</td></tr>
+  <tr><td>become</td><td>Tile it turns into (a stump, rubble, an open wall).</td><td class="ex">"."</td></tr>
+  <tr><td>drop</td><td>A loot table — see <a href="#loot">Loot</a>.</td><td class="ex">—</td></tr>
+  <tr><td>effect</td><td>One-shot animation when it breaks — see <a href="#effects">Effects</a>.</td><td class="ex">—</td></tr>
+  <tr><td>hitEffect / hitSound</td><td>Played on hits that don’t break it yet.</td><td class="ex">—</td></tr>
+  <tr><td>sound</td><td>Played when it breaks.</td><td class="ex">—</td></tr>
+  <tr><td>burst / burstColor</td><td>Particle count and colours (<code>false</code> for none).</td><td class="ex">8, [4,6]</td></tr>
+  <tr><td>haptic</td><td>Buzz for the player who broke it.</td><td class="ex">"light"</td></tr>
+  <tr><td>do</td><td>Actions to run; formulas can read <code>tx</code>, <code>ty</code>, <code>tile</code>.</td><td class="ex">[{"add":"secrets"}]</td></tr>
+  </table></div>
+  <p>Stop a particular attack from breaking tiles with <code>"hurt": {"breaks": false}</code>. Rules can react with <code>{"on":"break","tile":"b"}</code>, and <code>{"breakTile":true,"tx":5,"ty":3}</code> breaks one from an action (switches, bosses).</p>
+</section>
+
+<section id="prefabs" data-title="prefabs & components">
+  <h2>prefabs &amp; components</h2>
+  <p class="lead">A prefab is an entity template. Any component can go on any entity; mix freely. Every prefab is automatically tagged with its own name.</p>
+  <div class="pre"><pre>"slime": {
+  "tags": ["enemy"],
+  "sprite": { "name": "slime", "fps": 4, "anim": { "idle": [0,1], "die": [2,3,3] } },
+  "body": { "w": 12, "h": 9 },
+  "ai": { "type": "chase", "speed": 26, "range": 70, "idle": "wander" },
+  "health": { "hp": 2, "effect": "poof", "drop": [ {"prefab":"coin","count":[1,2]} ] },
+  "hurt": { "damage": 1, "targets": ["player"] }
+}</pre></div>
+
+  <h3>tags · layer · vel · vars · noCollide · persistent</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>tags</td><td>Labels used by rules, targets and loot. The hero must be tagged <code>player</code>.</td><td class="ex">["enemy","flying"]</td></tr>
+  <tr><td>layer</td><td>Draw order: higher is in front; 1+ also draws over front tiles.</td><td class="ex">2</td></tr>
+  <tr><td>vel</td><td>Starting velocity.</td><td class="ex">[0, -200]</td></tr>
+  <tr><td>vars</td><td>Per-entity values, read as <code>self.name</code>.</td><td class="ex">{"stage":0}</td></tr>
+  <tr><td>noCollide</td><td>Skip entity-to-entity collisions.</td><td class="ex">true</td></tr>
+  <tr><td>persistent</td><td>Keep this entity when the scene changes.</td><td class="ex">true</td></tr>
+  <tr><td>rules</td><td>Rules that belong to this entity — see <a href="#rules">Rules</a>.</td><td class="ex">[…]</td></tr>
+  <tr><td>extends</td><td>Start as a copy of another prefab, then apply this one's own fields on top — see <a href="#behaviors">Behaviors &amp; inheritance</a>.</td><td class="ex">"enemy_base"</td></tr>
+  <tr><td>use</td><td>Reusable behaviors this prefab gets, with optional parameter overrides — see <a href="#behaviors">Behaviors &amp; inheritance</a>.</td><td class="ex">[{"patrols":{"speed":50}}]</td></tr>
+  <tr><td>states</td><td>A state machine (idle/chase/enraged/…) that swaps components and rules — see <a href="#states">States</a>.</td><td class="ex">{"start":"idle",…}</td></tr>
+  </table></div>
+
+  <h3>sprite</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>name</td><td>Sprite to draw.</td><td class="ex">"hero"</td></tr>
+  <tr><td>anim</td><td>Frame lists per state: <code>idle</code>, <code>walk</code>, <code>jump</code>, <code>attack</code>, <code>hurt</code>, <code>die</code>; top-down can add <code>walk_up</code>, <code>idle_down</code>…</td><td class="ex">{"idle":[0],"walk":[0,1]}</td></tr>
+  <tr><td>fps</td><td>Animation speed.</td><td class="ex">8</td></tr>
+  <tr><td>loop</td><td><code>false</code> stops on the last frame.</td><td class="ex">false</td></tr>
+  <tr><td>layer</td><td>Same as the layer component.</td><td class="ex">1</td></tr>
+  <tr><td>color / w / h / shape</td><td>Draw a shape instead of a sprite (<code>rect</code> or <code>circle</code>).</td><td class="ex">{"color":8,"w":16,"h":16}</td></tr>
+  <tr><td>noFlip</td><td>Don’t mirror when facing left.</td><td class="ex">true</td></tr>
+  <tr><td>fit</td><td>Stretch to exactly one tile.</td><td class="ex">true</td></tr>
+  <tr><td>angles</td><td>Mode 7 rotation frames: 0 from behind, then clockwise (nose right, front, nose left). 4 or 8.</td><td class="ex">4</td></tr>
+  <tr><td>angleStart</td><td>First frame of the rotation set.</td><td class="ex">4</td></tr>
+  <tr><td>rotate</td><td>Top-down: turn the sprite (drawn facing up) with its heading.</td><td class="ex">true</td></tr>
+  <tr><td>shadow</td><td><code>false</code> hides the shadow when airborne.</td><td class="ex">false</td></tr>
+  </table></div>
+
+  <h3>body</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>w / h</td><td>Hitbox size (centred, feet at the bottom).</td><td class="ex">12, 14</td></tr>
+  <tr><td>ox / oy</td><td>Hitbox offset from the sprite’s top-left.</td><td class="ex">2, 2</td></tr>
+  <tr><td>gravity</td><td>Gravity multiplier; 0 floats.</td><td class="ex">0</td></tr>
+  <tr><td>solid</td><td><code>false</code> passes through walls.</td><td class="ex">false</td></tr>
+  <tr><td>bounce</td><td>Bounciness off walls and floors (0–1).</td><td class="ex">0.4</td></tr>
+  <tr><td>static</td><td>Never moves by physics.</td><td class="ex">true</td></tr>
+  <tr><td>maxFall</td><td>Terminal falling speed.</td><td class="ex">480</td></tr>
+  </table></div>
+
+  <h3>control</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>type</td><td><code>platformer</code>, <code>topdown</code>, <code>shmup</code> (stays on screen) or <code>kart</code>.</td><td class="ex">"platformer"</td></tr>
+  <tr><td>player</td><td>Which player drives it (0–3).</td><td class="ex">0</td></tr>
+  <tr><td>speed</td><td>Top speed.</td><td class="ex">90</td></tr>
+  <tr><td>jump</td><td>Jump power (height ≈ jump² ÷ 2·gravity).</td><td class="ex">300</td></tr>
+  <tr><td>jumps</td><td>2 = double jump.</td><td class="ex">2</td></tr>
+  <tr><td>accel / airAccel</td><td>How quickly it reaches speed on the ground / in the air.</td><td class="ex">14, 9</td></tr>
+  <tr><td>jumpButton / jumpSound</td><td>Change the jump button or its sound.</td><td class="ex">"a", "jump"</td></tr>
+  <tr><td>kart: speed accel brake coast reverse</td><td>Driving feel.</td><td class="ex">150, 140, 260, 60, 50</td></tr>
+  <tr><td>kart: turn grip hop heading</td><td>Degrees/sec, sideways grip, hop power, starting direction (0 east, 90 south, −90 north).</td><td class="ex">140, 7, 140, 0</td></tr>
+  <tr><td>kart: gasButton brakeButton hopButton</td><td>Remap driving buttons (defaults A, B, X).</td><td class="ex">"a","b","x"</td></tr>
+  </table></div>
+
+  <h3>ai</h3>
+  <div class="tbl"><table><tr><th>type</th><th>Behaviour and options</th></tr>
+  <tr><td>patrol</td><td>Walks back and forth, turning at walls and ledges. <code>dir</code>, <code>axis:"y"</code>, <code>edges:false</code> (walk off ledges).</td></tr>
+  <tr><td>chase / flee</td><td>Moves toward / away from <code>target</code> (a tag) within <code>range</code>. <code>idle:"wander"</code> or <code>"patrol"</code> when out of range; <code>jump</code> to hop obstacles.</td></tr>
+  <tr><td>wander</td><td>Random short walks.</td></tr>
+  <tr><td>fly</td><td>Wavy flight: <code>amp</code>, <code>freq</code>.</td></tr>
+  <tr><td>hop</td><td>Jumps toward the target every <code>every</code> seconds with <code>jump</code> power.</td></tr>
+  <tr><td>turret</td><td>Stands still — pair with <code>attack</code>.</td></tr>
+  <tr><td>race / path</td><td>Drives through <code>path</code> tile waypoints in order (<code>turn</code>, <code>heading</code>, <code>radius</code>, <code>loop:false</code>). Counts <code>self.laps</code>, fires a <code>lap</code> entity event.</td></tr>
+  <tr><td>all types</td><td><code>speed</code> is movement speed.</td></tr>
+  </table></div>
+
+  <h3>health</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>hp / max</td><td>Hit points.</td><td class="ex">3</td></tr>
+  <tr><td>invuln</td><td>Seconds of blinking safety after a hit.</td><td class="ex">1</td></tr>
+  <tr><td>var</td><td>Mirrors hp into a global variable (and <code>&lt;var&gt;Max</code>) for the HUD; carries across scenes.</td><td class="ex">"hp"</td></tr>
+  <tr><td>knockback</td><td>How far hits push it.</td><td class="ex">120</td></tr>
+  <tr><td>drop</td><td>A loot table — see <a href="#loot">Loot</a>.</td><td class="ex">"heart"</td></tr>
+  <tr><td>effect / hitEffect</td><td>One-shot animation on death / on each hit.</td><td class="ex">"poof"</td></tr>
+  <tr><td>dieTime</td><td>Seconds to linger before removal (plays <code>anim.die</code> if it has one).</td><td class="ex">0.5</td></tr>
+  <tr><td>burst / burstColor</td><td>Death particles (<code>false</code> for none).</td><td class="ex">12, [21,23]</td></tr>
+  <tr><td>hurtSound / deathSound</td><td>Override the automatic sounds.</td><td class="ex">"ouch"</td></tr>
+  <tr><td>onDeath</td><td>Actions to run when it dies.</td><td class="ex">[{"add":"score","value":100}]</td></tr>
+  </table></div>
+
+  <h3>hurt · stompable · pickup</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>hurt.damage / targets</td><td>Damages touching entities with one of these tags.</td><td class="ex">1, ["player"]</td></tr>
+  <tr><td>hurt.knockback / destroy</td><td>Push strength; <code>destroy:true</code> removes it after one hit (bullets).</td><td class="ex">150, true</td></tr>
+  <tr><td>hurt.breaks</td><td><code>false</code> = can’t break tiles.</td><td class="ex">false</td></tr>
+  <tr><td>stompable.bounce / damage / sound</td><td>A player landing on top hurts it instead.</td><td class="ex">230</td></tr>
+  <tr><td>pickup.var / add</td><td>Collected on touch; adds to a variable (dots reach inside objects).</td><td class="ex">"inv.seeds", 1</td></tr>
+  <tr><td>pickup.heal / sound / targets / do</td><td>Heal the collector; sound; who can collect (default player); actions.</td><td class="ex">1</td></tr>
+  </table></div>
+
+  <h3>attack</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>prefab</td><td>What to spawn: a slash, arrow, fireball.</td><td class="ex">"slash"</td></tr>
+  <tr><td>button</td><td>Button for player attacks.</td><td class="ex">"b"</td></tr>
+  <tr><td>cooldown</td><td>Seconds between attacks.</td><td class="ex">0.3</td></tr>
+  <tr><td>offset</td><td>Distance in front of the attacker.</td><td class="ex">12</td></tr>
+  <tr><td>speed</td><td>&gt; 0 fires it as a projectile.</td><td class="ex">220</td></tr>
+  <tr><td>follow</td><td>Stays attached (sword swings).</td><td class="ex">true</td></tr>
+  <tr><td>sound / anim</td><td>Sound; seconds the attacker shows its attack animation.</td><td class="ex">"sword", 0.2</td></tr>
+  <tr><td>auto / target / range / aim</td><td>Non-player attackers fire automatically at a target in range, aimed unless <code>aim:false</code>.</td><td class="ex">"player", 120</td></tr>
+  <tr><td>rotate</td><td><code>false</code> keeps the sprite unrotated when attacking up or down.</td><td class="ex">false</td></tr>
+  </table></div>
+
+  <h3>talk · warp · move · solid</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>talk.lines / name</td><td>Dialogue lines and speaker name — see <a href="#dialogue">Dialogue</a>.</td><td class="ex">["Hello!"], "Elder"</td></tr>
+  <tr><td>talk.branches</td><td>Alternative conversations; the first whose <code>if</code> is true is used.</td><td class="ex">[{"if":"flags.done","lines":["Thanks!"]}]</td></tr>
+  <tr><td>talk.button / range / once / then</td><td>Button, distance, only once, actions after the default conversation.</td><td class="ex">"a", 22</td></tr>
+  <tr><td>warp.scene</td><td>Touching it changes scene.</td><td class="ex">"cave"</td></tr>
+  <tr><td>warp.at / tx / ty / x / y</td><td>Where to arrive (a tile/legend character or tag, a tile, or pixels). Default: the doorway leading back.</td><td class="ex">"U"</td></tr>
+  <tr><td>warp.targets / sound</td><td>Who can use it; sound.</td><td class="ex">["player"]</td></tr>
+  <tr><td>move.path / speed / loop</td><td>Follows tile offsets from its start (moving platforms).</td><td class="ex">[[0,0],[4,0]], 30</td></tr>
+  <tr><td>move.vx / vy / sine / freq</td><td>Constant drift or bobbing.</td><td class="ex">0, 0, 6, 2</td></tr>
+  <tr><td>solid</td><td>Other bodies collide with it and ride on it. <code>{"oneWay":true}</code> for jump-through.</td><td class="ex">true</td></tr>
+  </table></div>
+
+  <h3>spawner · emitter · text · lifetime</h3>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>spawner.prefab / every / max</td><td>Makes copies on a timer, up to max alive.</td><td class="ex">"slime", 3, 4</td></tr>
+  <tr><td>spawner.dx / dy / spread / vel</td><td>Offset, random spread, starting velocity.</td><td class="ex">0, -8, 16</td></tr>
+  <tr><td>emitter.color / rate / speed / life</td><td>Particle stream (torches, jets, sparkles).</td><td class="ex">[8,5], 20, 30, 0.6</td></tr>
+  <tr><td>emitter.gravity / angle / spread / w / h / size</td><td>Fall speed, direction and cone in degrees, emit area, particle size.</td><td class="ex">0, 270, 40</td></tr>
+  <tr><td>text.value / color / align / size</td><td>Draws text in the world.</td><td class="ex">"Score {score}"</td></tr>
+  <tr><td>lifetime.t</td><td>Removes it after t seconds.</td><td class="ex">0.2</td></tr>
+  </table></div>
+</section>
+
+<section id="behaviors" data-title="Behaviors &amp; inheritance">
+  <h2>Behaviors &amp; inheritance</h2>
+  <p class="lead">Two ways to reuse a set of components and rules across many prefabs, instead of copy-pasting them.</p>
+  <h3>extends</h3>
+  <p><code>"extends":"baseName"</code> starts a prefab as a full copy of another prefab, then lays this prefab's own fields on top. The child's fields win on a clash; <code>rules</code> and <code>tags</code> are combined rather than replaced, so a child keeps everything the parent gave it and can still add its own.</p>
+  <div class="pre"><pre>"enemy_base": { "body": {"w":12,"h":12}, "health": {"hp":3}, "hurt": {"damage":1,"targets":["player"]} },
+"goblin": { "extends": "enemy_base", "sprite": {"name":"goblin"}, "ai": {"type":"patrol","speed":30} }</pre></div>
+  <h3>behaviors &amp; use</h3>
+  <p><code>"behaviors"</code> is a cart-level dict of reusable, parametrized bundles of components and rules. A prefab lists the ones it wants in <code>"use"</code>, optionally overriding some of that behavior's parameters.</p>
+  <div class="pre"><pre>"behaviors": {
+  "patrols": { "params": {"moveSpeed":30}, "tags": ["enemy"], "ai": {"type":"patrol","speed":"=self.moveSpeed"} },
+  "shootsAt": { "params": {"rate":2,"bullet":"arrow"}, "use": ["patrols"],
+                "attack": {"auto":true,"prefab":"=self.bullet","cooldown":"=self.rate"} }
+},
+"prefabs": {
+  "goblin":   { "sprite": {"name":"goblin"}, "health": {"hp":3}, "use": ["patrols"] },
+  "archer":   { "sprite": {"name":"archer"}, "health": {"hp":2}, "use": [ {"shootsAt": {"rate":0.6}} ] }
+}</pre></div>
+  <p class="note">Param names must avoid the entity's built-in fields (see the reserved-names note under <a href="#formulas">Formulas</a>) — that's why this uses <code>moveSpeed</code>, not <code>speed</code>: <code>self.speed</code> is already reserved for the entity's current movement speed, so a param called <code>speed</code> would be silently shadowed and never read.</p>
+  <p>A behavior's <code>params</code> are its defaults; <code>"use":[{"shootsAt":{"rate":0.6}}]</code> overrides just <code>rate</code> for that prefab. Params become entity vars, so both the behavior's own fields (<code>"=self.rate"</code>) and the prefab's own rules can read them as <code>self.rate</code> — the same formula mechanism as everywhere else (see <a href="#formulas">Formulas</a>). A behavior can itself <code>use</code> other behaviors. Precedence, most specific wins: a prefab's own fields &gt; behaviors it uses (later ones override earlier ones) &gt; what it extends — except <code>rules</code>/<code>tags</code>, which always combine across every layer.</p>
+</section>
+<section id="states" data-title="States">
+  <h2>States</h2>
+  <p class="lead">A <code>states</code> component turns a prefab into a state machine — boss phases, enemy modes, doors, day/night — instead of a pile of <code>when</code> rules with hand-rolled flags.</p>
+  <div class="pre"><pre>"states": {
+  "start": "asleep",
+  "asleep":  { "ai": {"type":"turret"},
+               "rules": [ {"on":"when","if":"dist(self,player) < 80", "goto":"awake"} ] },
+  "awake":   { "enter": [ {"sound":"roar"}, {"text":"It wakes up!","t":1} ], "ai": {"type":"chase","speed":40},
+               "rules": [ {"on":"hit", "if":"self.hp <= self.maxhp / 2", "goto":"enraged"} ] },
+  "enraged": { "enter": [ {"shake":0.4}, {"comp":"ai.speed","value":90} ], "ai": {"type":"chase","speed":90},
+               "rules": [ {"on":"die", "do": [ {"cancelDeath":true}, {"goto":"dead"} ] } ] },
+  "dead":    { "enter": [ {"text":"Defeated!","t":2}, {"add":"gold","value":50} ], "ai": {"type":"turret"} }
+}</pre></div>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th></tr>
+  <tr><td>start</td><td>The first state's name (or the first key, if omitted).</td></tr>
+  <tr><td>a state's own fields</td><td>Any component (sprite, ai, control, body, attack…) it lists overrides the prefab's normal value while that state is active; anything it doesn't mention is unchanged. <code>health</code> cannot be overridden per state.</td></tr>
+  <tr><td>enter / exit</td><td>Actions that run once, exactly when the state is entered / left.</td></tr>
+  <tr><td>rules</td><td>Rules that only run in this state — the same events as ordinary <a href="#rules">entity rules</a> (<code>when</code>, <code>every</code>, <code>hit</code>, <code>touch</code>, <code>tile</code>, <code>button</code>, <code>die</code>…).</td></tr>
+  </table></div>
+  <p><code>{"goto":"name"}</code> is an action that switches state — it runs the old state's <code>exit</code>, applies the new state, then runs its <code>enter</code>. As a shortcut, <code>"goto"</code> can sit directly on a rule alongside its own <code>if</code>, instead of inside <code>do</code>.</p>
+  <p><code>self.mode</code> reads the current state's name in a formula or in <code>{braces}</code> text, e.g. <code>"HP: {self.hp} ({self.mode})"</code>.</p>
+  <h3>Surviving death: cancelDeath</h3>
+  <p>Health reaching 0 removes the entity immediately — unless a rule for the <code>die</code> event calls <code>{"cancelDeath":true}</code> first. That's how a boss survives to a "dead" state instead of vanishing, as in the <code>enraged</code> state above. Use an <code>"on":"die"</code> rule for this, not a per-frame <code>when</code> check on <code>self.hp</code> — a per-frame check runs too late, after the entity is already gone.</p>
+</section>
+<section id="dialogue" data-title="Dialogue">
+  <h2>Dialogue</h2>
+  <p class="lead">NPCs can react to your progress, change speaker mid-conversation and ask questions. The same lines work in the <code>say</code> action, so any rule can start a conversation.</p>
+  <h3>Lines</h3>
+  <div class="tbl"><table><tr><th>Line key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>"text"</td><td>A plain string is a line. Braces show formulas.</td><td class="ex">"You have {inv.turnips} turnips."</td></tr>
+  <tr><td>text</td><td>The line’s words.</td><td class="ex">{"text":"Moo."}</td></tr>
+  <tr><td>if</td><td>Skip the line unless this is true.</td><td class="ex">"has(inv.items,'lamp')"</td></tr>
+  <tr><td>name</td><td>Someone else says this line.</td><td class="ex">"Cow"</td></tr>
+  <tr><td>do</td><td>Actions run as the line appears (a line with only <code>do</code> is a silent step).</td><td class="ex">[{"sound":"gasp"}]</td></tr>
+  <tr><td>choices</td><td>A menu: up/down to pick, A to choose.</td><td class="ex">[{"text":"Yes"},{"text":"No"}]</td></tr>
+  </table></div>
+  <h3>Choices</h3>
+  <div class="tbl"><table><tr><th>Choice key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>text</td><td>What the option says.</td><td class="ex">"Buy (20g)"</td></tr>
+  <tr><td>if</td><td>Hide the option unless this is true.</td><td class="ex">"gold >= 20"</td></tr>
+  <tr><td>do</td><td>Actions when picked.</td><td class="ex">[{"add":"gold","value":-20}]</td></tr>
+  <tr><td>lines</td><td>Lines that follow this answer (they can have choices too).</td><td class="ex">["Here you go!"]</td></tr>
+  <tr><td>cancel</td><td>B picks this option.</td><td class="ex">true</td></tr>
+  </table></div>
+  <h3>Branches</h3>
+  <h3>if / else inside a conversation</h3>
+  <p>A <code>say</code> while a conversation is open adds its lines to that conversation — in order, with the same speaker — so several if/else checks can each add a line.</p>
+  <div class="pre"><pre>"talk": { "name": "Guard", "lines": ["Halt!"], "then": [
+  { "if": "keys > 0",   "then": [ {"say": ["You have a key."]} ],     "else": [ {"say": ["No key, no entry."]} ] },
+  { "if": "gold >= 10", "then": [ {"say": ["And you look rich."]} ],  "else": [ {"say": ["And you look poor."]} ] },
+  { "say": [ { "text": "Pay a 3 gold toll?", "choices": [
+    { "text": "Pay", "do": [ { "if": "gold >= 3", "then": [ {"add":"gold","value":-3}, {"say":["Thank you."]} ],
+                                                  "else": [ {"say":["You cannot afford it!"]} ] } ] },
+    { "text": "Refuse", "cancel": true } ] } ] }
+] }</pre></div>
+  <h3>Branches</h3>
+  <p>The first branch whose <code>if</code> is true replaces the NPC’s <code>lines</code>; its <code>do</code> runs when that conversation ends (instead of <code>then</code>). A branch without <code>if</code> always matches. <code>self.talks</code> counts finished conversations with this NPC, so <code>"self.talks == 0"</code> means a first meeting.</p>
+  <div class="pre"><pre>"farmer": { "sprite": { "name": "farmer" }, "solid": true, "talk": {
+  "name": "Farmer",
+  "branches": [
+    { "if": "flags.questDone", "lines": ["Thanks again, hero!"] },
+    { "if": "inv.turnips >= 10", "lines": ["Ten turnips! Here's your reward."],
+      "do": [ {"add":"inv.turnips","value":-10}, {"set":"flags.questDone","value":true}, {"add":"gold","value":100} ] },
+    { "if": "self.talks > 0", "lines": ["Back again? Bring me 10 turnips.", "You have {inv.turnips} so far."] }
+  ],
+  "lines": [
+    "Welcome to the farm!",
+    { "text": "Oh, a lamp! Handy in the well.", "if": "has(inv.items,'lamp')" },
+    { "text": "Moo.", "name": "Cow" },
+    { "text": "Buy seeds for 20 gold?", "choices": [
+      { "text": "Yes please", "if": "gold >= 20", "do": [ {"add":"gold","value":-20}, {"add":"inv.seeds","value":5} ], "lines": ["Here are 5 seeds."] },
+      { "text": "I can't afford it", "if": "gold < 20", "lines": ["Come back later."] },
+      { "text": "No thanks", "cancel": true, "lines": ["Suit yourself."] } ] }
+  ]
+}}</pre></div>
+</section>
+
+<section id="scenes" data-title="scenes">
+  <h2>scenes</h2>
+  <div class="pre"><pre>"cave": {
+  "tileSize": 16, "gravity": 700, "bg": 1, "music": "cave",
+  "map": [ "#########", "#..P..C.#", "#########" ],
+  "legend": { "P": "hero", "C": "coin" },
+  "entities": [ { "prefab": "boss", "tx": 10, "ty": 4 } ],
+  "rules": [ … ]
+}</pre></div>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Example</th></tr>
+  <tr><td>tileSize</td><td>Pixels per map square.</td><td class="ex">16</td></tr>
+  <tr><td>gravity</td><td>Side view (e.g. 700) or top-down (0).</td><td class="ex">700</td></tr>
+  <tr><td>bg</td><td>Background colour.</td><td class="ex">1</td></tr>
+  <tr><td>music</td><td>Track to play; <code>null</code> for silence.</td><td class="ex">"theme"</td></tr>
+  <tr><td>map</td><td>Rows of characters, all the same length. Tiles, legend characters and <code>.</code>.</td><td class="ex">["####","#P.#"]</td></tr>
+  <tr><td>legend</td><td>Characters that spawn prefabs standing on that square. <code>{"prefab":"x","with":{…}}</code> overrides components for that spawn.</td><td class="ex">{"P":"hero"}</td></tr>
+  <tr><td>entities</td><td>Extra spawns by tile (<code>tx/ty</code>) or pixel (<code>x/y</code>), with optional <code>with</code>.</td><td class="ex">[{"prefab":"boss","tx":10,"ty":4}]</td></tr>
+  <tr><td>camera</td><td><code>{"follow":"tag","lerp":0.2}</code> or <code>{"scroll":[30,0]}</code> for auto-scrolling.</td><td class="ex">{"lerp":0.15}</td></tr>
+  <tr><td>layers</td><td>Parallax backgrounds and foregrounds — see <a href="#layers">Layers</a>.</td><td class="ex">[…]</td></tr>
+  <tr><td>mode7</td><td>3D ground plane — see <a href="#mode7">Mode 7</a>.</td><td class="ex">{…}</td></tr>
+  <tr><td>ysort</td><td>Top-down depth sorting.</td><td class="ex">true</td></tr>
+  <tr><td>hud</td><td>Replaces the global HUD; <code>[]</code> hides it.</td><td class="ex">[]</td></tr>
+  <tr><td>vars</td><td>Values set when entering.</td><td class="ex">{"cp":0}</td></tr>
+  <tr><td>rules</td><td>Rules active only here.</td><td class="ex">[…]</td></tr>
+  <tr><td>zGravity</td><td>How fast hops and ramp jumps fall in top-down / Mode 7.</td><td class="ex">600</td></tr>
+  </table></div>
+  <h3>Doors &amp; arrivals</h3>
+  <p>Changing scene without <code>at</code>/<code>tx</code> places players on the doorway in the new scene that leads back to where they came from (a tile rule, warp, or collide rule pointing back). Otherwise they appear at their legend spawn. A doorway you arrive on won’t fire until you step off it. Use <code>"at":"D"</code> to choose a specific character or tag.</p>
+</section>
+
+<section id="layers" data-title="Layers & parallax">
+  <h2>Layers &amp; parallax</h2>
+  <div class="pre"><pre>"layers": [
+  { "color": 16, "y": 0, "h": 90, "z": -1 },
+  { "sprite": "clouds", "y": 12, "factor": 0.2, "speed": [8, 0], "z": -1 },
+  { "sprite": "hills", "y": 120, "factor": 0.5, "z": -1 },
+  { "sprite": "fog", "factor": 1.2, "alpha": 0.5, "z": 2, "repeatY": true }
+]</pre></div>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th></tr>
+  <tr><td>sprite / color</td><td>A repeating image, or a colour band (<code>y</code>, <code>h</code>).</td></tr>
+  <tr><td>factor / factorY</td><td>Scroll speed relative to the camera: 0 fixed, 1 with the map, &gt;1 closer than the map.</td></tr>
+  <tr><td>y</td><td>Screen row (in Mode 7, a sprite without <code>y</code> sits on the horizon).</td></tr>
+  <tr><td>speed</td><td>Auto-scroll in pixels/second — clouds, rain, waterfalls.</td></tr>
+  <tr><td>z</td><td>Depth: below 0 behind the map · 0–1 between map and characters · 1+ in front of everything.</td></tr>
+  <tr><td>alpha / repeatY</td><td>Transparency; tile the sprite over the whole screen.</td></tr>
+  </table></div>
+</section>
+
+<section id="mode7" data-title="Mode 7">
+  <h2>Mode 7</h2>
+  <p class="lead">The tile map becomes a ground plane seen in perspective, with sprites scaled by distance and drawn far to near. Racing, flying and overworld maps.</p>
+  <div class="pre"><pre>"mode7": { "horizon": 72, "height": 22, "fov": 70, "back": 56, "spriteScale": 0.65,
+           "fog": 20, "fogDepth": 0.22, "outside": 10, "ground": 10 }</pre></div>
+  <div class="tbl"><table><tr><th>Key</th><th>What it does</th><th>Default</th></tr>
+  <tr><td>horizon</td><td>Screen row where ground meets sky.</td><td class="ex">⅓ of height</td></tr>
+  <tr><td>height</td><td>Camera height above the ground.</td><td class="ex">22</td></tr>
+  <tr><td>fov</td><td>Field of view in degrees.</td><td class="ex">70</td></tr>
+  <tr><td>back</td><td>Camera distance behind what it follows.</td><td class="ex">56</td></tr>
+  <tr><td>turn</td><td>How quickly the camera swings to match heading.</td><td class="ex">8</td></tr>
+  <tr><td>spriteScale</td><td>Overall size of billboards.</td><td class="ex">0.65</td></tr>
+  <tr><td>outside</td><td>Colour beyond the map, or <code>"wrap"</code> to repeat it.</td><td class="ex">"wrap"</td></tr>
+  <tr><td>ground</td><td>Colour behind transparent tile pixels.</td><td class="ex">outside</td></tr>
+  <tr><td>fog / fogDepth</td><td>Fade the distance into a colour.</td><td class="ex">—, 0.3</td></tr>
+  <tr><td>far / near / angle</td><td>Draw distance, clipping, starting camera angle.</td><td class="ex">1400, 4, −90</td></tr>
+  </table></div>
+  <p>Use <code>"gravity": 0</code>, a <code>kart</code> control for the player, <code>race</code> AI for rivals, and <code>"sprite":{"angles":4}</code> for vehicles. Add a <code>minimap</code> to the HUD.</p>
+</section>
+
+<section id="hud" data-title="HUD">
+  <h2>HUD</h2>
+  <div class="tbl"><table><tr><th>Item</th><th>Keys</th><th>Example</th></tr>
+  <tr><td>text</td><td>x (or "center"), y, color, align, size, blink, shadow</td><td class="ex">{"text":"COINS {coins}","x":250,"y":6,"align":"right"}</td></tr>
+  <tr><td>icons</td><td>Repeats a sprite <code>count</code> times; frame 1 marks empty slots up to <code>max</code>; gap</td><td class="ex">{"icons":"heart","count":"hp","max":"hpMax"}</td></tr>
+  <tr><td>bar</td><td>max, w, h, color, bg</td><td class="ex">{"bar":"stamina","max":100,"w":40}</td></tr>
+  <tr><td>sprite</td><td>fps</td><td class="ex">{"sprite":"coin","x":200,"y":4}</td></tr>
+  <tr><td>minimap</td><td>w, h, colors (tag → colour), alpha, border</td><td class="ex">{"minimap":true,"w":54,"colors":{"player":8}}</td></tr>
+  <tr><td>if (any item)</td><td>Show only when a condition is true.</td><td class="ex">"if":"keys > 0"</td></tr>
+  </table></div>
+</section>
+
+<section id="vars" data-title="Variables">
+  <h2>Variables</h2>
+  <p>Global <code>vars</code> persist across scenes and can hold numbers, text, lists and nested objects. Reach inside with dots. Each entity also has its own vars (<code>self.stage</code>).</p>
+  <div class="pre"><pre>"vars": { "gold": 0, "day": 1, "inv": { "seeds": 3, "items": [] }, "flags": { "metElder": false } }</pre></div>
+  <p><code>{"add":"inv.seeds","value":-1}</code> · <code>{"push":"inv.items","value":"lamp"}</code> · <code>{"set":"flags.metElder","value":true}</code> · <code>{"reset":true}</code> restores the starting values.</p>
+</section>
+
+<section id="formulas" data-title="Formulas">
+  <h2>Formulas</h2>
+  <p>A string starting with <code>=</code> is calculated. Conditions can be plain formula text. Text anywhere can embed formulas in braces: <code>"Day {day} — {inv.seeds} seeds"</code>. Formulas only read game values; nothing else can run.</p>
+  <div class="pre"><pre>{ "add": "gold", "value": "=price * qty" }
+{ "if": "gold >= 50 and not flags.boughtSword", "then": [ … ] }
+{ "velocity": "self", "vy": "=-200 - self.power * 20" }</pre></div>
+  <div class="tbl"><table><tr><th>Part</th><th>Details</th></tr>
+  <tr><td>operators</td><td><code>+ - * / % ^</code>, <code>== != &lt; &lt;= &gt; &gt;=</code>, <code>and or not</code>, <code>a ? b : c</code>, parentheses. <code>"text" + 5</code> joins.</td></tr>
+  <tr><td>names</td><td>Global vars by name; <code>self</code>, <code>other</code>, <code>player</code>, <code>a</code>, <code>b</code>; <code>time</code>, <code>frame</code>, <code>scene</code>, <code>tilt.x</code>, <code>tilt.y</code>, <code>screen.w/h</code>, <code>cam.x/y</code>, <code>map.w/h</code>. In break/hit rules: <code>tx</code>, <code>ty</code>, <code>tile</code>, <code>amount</code>.</td></tr>
+  <tr><td>entity fields</td><td><code>x y vx vy cx cy w h tx ty hp maxhp onGround dir diry age id alive prefab player sprite z heading speed wp</code>, plus any entity var.</td></tr>
+  <tr><td>lists</td><td><code>list[0]</code>, <code>len(list)</code>, <code>has(list, "lamp")</code>.</td></tr>
+  </table></div>
+  <p class="note">Reserved: <code>x y vx vy cx cy w h tx ty hp maxhp onGround dir diry age id alive prefab player sprite mode z heading speed wp</code> are always <code>self</code>'s built-in fields, never a var — a var or behavior param with one of these exact names is shadowed and silently reads the built-in instead. Needed a speed number? Call it <code>moveSpeed</code>, not <code>speed</code>.</p>
+  <h3>Functions</h3>
+  <div class="tbl"><table><tr><th>Function</th><th>Returns</th></tr>
+  <tr><td>min max abs floor ceil round sqrt sign</td><td>Maths basics.</td></tr>
+  <tr><td>sin cos atan2(y,x)</td><td>Trig, in radians.</td></tr>
+  <tr><td>clamp(v,lo,hi) lerp(a,b,t)</td><td>Limit / blend a value.</td></tr>
+  <tr><td>rand() rand(a,b) randint(a,b) chance(p) pick(…)</td><td>Randomness.</td></tr>
+  <tr><td>len has str num int pad(n,width)</td><td>Lists and text (<code>pad(7,3)</code> → "007").</td></tr>
+  <tr><td>count("tag") first("tag") nearest("tag",range)</td><td>Find entities.</td></tr>
+  <tr><td>dist(a,b) angle(a,b)</td><td>Between two entities.</td></tr>
+  <tr><td>btn("a") btnp("a")</td><td>Button held / just pressed.</td></tr>
+  <tr><td>tile(tx,ty)</td><td>Character on the map there.</td></tr>
+  <tr><td>hasSave()</td><td>Whether save data exists.</td></tr>
+  </table></div>
+</section>
+
+<section id="rules" data-title="Rules & events">
+  <h2>Rules &amp; events</h2>
+  <p class="lead"><code>{"on": EVENT, …, "do": [actions]}</code>. Put rules in the cart (everywhere), a scene (there only) or a prefab (each copy, with <code>self</code> = that entity).</p>
+  <div class="tbl"><table><tr><th>Event</th><th>When it fires</th><th>Where</th></tr>
+  <tr><td>start</td><td>Scene begins.</td><td>cart, scene</td></tr>
+  <tr><td>spawn</td><td>The entity appears.</td><td>entity</td></tr>
+  <tr><td>update</td><td>Every frame.</td><td>all</td></tr>
+  <tr><td>every / after</td><td>Repeating / one-time timer: <code>"t":2</code>.</td><td>all</td></tr>
+  <tr><td>button</td><td><code>"button":"start"</code> pressed (entities: their own player).</td><td>all</td></tr>
+  <tr><td>when</td><td><code>"if":"formula"</code> becomes true.</td><td>all</td></tr>
+  <tr><td>var / count</td><td><code>"var":"hp","op":"&lt;=","value":0</code> · <code>"tag":"enemy","op":"==","value":0</code> becomes true.</td><td>all</td></tr>
+  <tr><td>collide</td><td>Tags <code>"a"</code> and <code>"b"</code> start touching.</td><td>cart, scene</td></tr>
+  <tr><td>touch</td><td>Something tagged <code>"tag"</code> touches it (<code>other</code> = that).</td><td>entity</td></tr>
+  <tr><td>hit / die / land</td><td>It’s damaged (<code>other</code> = attacker, <code>amount</code>) / dies / lands after a jump.</td><td>entity</td></tr>
+  <tr><td>tile</td><td>Enters a tile character: <code>"tile":"W"</code> (<code>"tag"</code> filters who).</td><td>all</td></tr>
+  <tr><td>break</td><td>A breakable tile was destroyed: <code>"tile":"b"</code>. <code>{"bump":true}</code> for bumped blocks.</td><td>all</td></tr>
+  <tr><td>destroyed</td><td>Something tagged <code>"tag"</code> is removed.</td><td>cart, scene</td></tr>
+  <tr><td>event</td><td>A custom <code>{"emit":"name"}</code> is sent: <code>"name":"newDay"</code>.</td><td>all</td></tr>
+  <tr><td>shake</td><td>The phone is shaken (needs motion).</td><td>all</td></tr>
+  <tr><td>lap</td><td>Race AI finished a lap.</td><td>entity</td></tr>
+  </table></div>
+  <h3>if / else on a rule</h3>
+  <p>Any rule except <code>when</code> can check a condition itself: <code>do</code> runs if it’s true, <code>else</code> if not.</p>
+  <div class="pre"><pre>{ "on": "tile", "tile": "F", "tag": "player", "if": "cp == 1",
+  "do":   [ { "set": "cp", "value": 0 }, { "add": "lap" } ],
+  "else": [ { "text": "Go through the checkpoint first!", "t": 1.5 } ] }</pre></div>
+  <h3>Conditions</h3>
+  <p>A formula string, or <code>{"var":"keys","op":"&gt;=","value":1}</code>, <code>{"count":"enemy","op":"==","value":0}</code>, <code>{"all":[…]}</code>, <code>{"any":[…]}</code>, <code>{"not":…}</code>, <code>{"chance":0.5}</code>.</p>
+</section>
+
+<section id="actions" data-title="Actions">
+  <h2>Actions</h2>
+  <p class="lead">One per object, run in order. Targets: <code>"self"</code>, <code>"other"</code>, <code>"a"</code>, <code>"b"</code>, or a tag (every entity with it).</p>
+  <div class="tbl"><table><tr><th>Action</th><th>Options</th><th>Example</th></tr>
+  <tr><td>set / add</td><td>value (number, text, formula, or <code>[min,max]</code> random). Paths: <code>coins</code>, <code>inv.seeds</code>, <code>self.hp</code>, <code>other.x</code>, <code>player.z</code>.</td><td class="ex">{"add":"gold","value":"=5*combo"}</td></tr>
+  <tr><td>push / remove</td><td>value — add to / take from a list.</td><td class="ex">{"push":"inv.items","value":"key"}</td></tr>
+  <tr><td>reset</td><td>All vars back to the cart’s starting values.</td><td class="ex">{"reset":true}</td></tr>
+  <tr><td>if</td><td><code>if</code>, <code>then</code> and <code>else</code> in one object — nothing else goes in it. Chain with <code>"else": {"if": …}</code>. Put as many if objects in a list as you like.</td><td class="ex">{"if":"keys>0","then":[…],"else":[…]}</td></tr>
+  <tr><td>switch</td><td>Runs the first case whose <code>if</code> is true; a case without <code>if</code> is the default.</td><td class="ex">{"switch":[{"if":"hp&lt;3","then":[…]},{"then":[…]}]}</td></tr>
+  <tr><td>wait</td><td>then — run after seconds.</td><td class="ex">{"wait":1.5,"then":[…]}</td></tr>
+  <tr><td>spawn</td><td>at, dx, dy · tx, ty · x, y · vx, vy · with</td><td class="ex">{"spawn":"arrow","at":"self","vx":200}</td></tr>
+  <tr><td>destroy / kill</td><td>Remove quietly / kill (plays death, drops loot).</td><td class="ex">{"kill":"enemy"}</td></tr>
+  <tr><td>damage / heal</td><td>amount</td><td class="ex">{"damage":"other","amount":2}</td></tr>
+  <tr><td>velocity / move</td><td>vx, vy · tx, ty, x, y</td><td class="ex">{"velocity":"self","vy":-250}</td></tr>
+  <tr><td>setSprite</td><td>target, anim</td><td class="ex">{"setSprite":"crop_ripe"}</td></tr>
+  <tr><td>comp</td><td>value, target — edit any component field live; <code>null</code> removes.</td><td class="ex">{"comp":"ai.speed","value":60}</td></tr>
+  <tr><td>tag / untag</td><td>target</td><td class="ex">{"tag":"ripe"}</td></tr>
+  <tr><td>setTile / breakTile</td><td>tx, ty</td><td class="ex">{"setTile":"B","tx":5,"ty":3}</td></tr>
+  <tr><td>effect</td><td>at, dx, dy, x, y, fps</td><td class="ex">{"effect":"poof","at":"self"}</td></tr>
+  <tr><td>drop</td><td>A loot table; at, x, y</td><td class="ex">{"drop":{"one":["coin","heart"]}}</td></tr>
+  <tr><td>burst</td><td>color, count</td><td class="ex">{"burst":"self","color":8,"count":12}</td></tr>
+  <tr><td>say</td><td>name, then</td><td class="ex">{"say":["Hi!","Bye."],"name":"Sign"}</td></tr>
+  <tr><td>text</td><td>t, color — a banner.</td><td class="ex">{"text":"STAGE CLEAR","t":2}</td></tr>
+  <tr><td>sound / music</td><td><code>null</code> music stops it.</td><td class="ex">{"music":"boss"}</td></tr>
+  <tr><td>shake / flash</td><td>Seconds / colour.</td><td class="ex">{"shake":0.3}</td></tr>
+  <tr><td>haptic</td><td>light, medium, heavy, double, success, warning, error; target</td><td class="ex">{"haptic":"success"}</td></tr>
+  <tr><td>emit</td><td>Send a custom event.</td><td class="ex">{"emit":"newDay"}</td></tr>
+  <tr><td>scene / restart</td><td>at, tx, ty, x, y</td><td class="ex">{"scene":"cave","at":"D"}</td></tr>
+  <tr><td>save / load / erase</td><td>Cart save memory (needs <code>meta.persist</code>).</td><td class="ex">{"save":true}</td></tr>
+  <tr><td>goto</td><td>Switches a stateful entity to a named state — see <a href="#states">States</a>. Also works as shorthand directly on a rule.</td><td class="ex">{"goto":"enraged"}</td></tr>
+  <tr><td>cancelDeath</td><td>Inside an <code>"on":"die"</code> rule, keeps the entity alive instead of letting it be removed.</td><td class="ex">{"cancelDeath":true}</td></tr>
+  <tr><td>log</td><td>Print to the browser console (debugging).</td><td class="ex">{"log":"hp is {hp}"}</td></tr>
+  </table></div>
+</section>
+
+<section id="loot" data-title="Loot tables">
+  <h2>Loot tables</h2>
+  <p>Used by <code>health.drop</code>, tile <code>break.drop</code> / <code>hit.drop</code> and the <code>drop</code> action. Several items scatter; items with a body pop out.</p>
+  <div class="tbl"><table><tr><th>Form</th><th>Meaning</th></tr>
+  <tr><td>"coin"</td><td>Always one coin.</td></tr>
+  <tr><td>["coin","coin","heart"]</td><td>All of these.</td></tr>
+  <tr><td>[{"prefab":"heart","chance":0.3}, …]</td><td>Each entry rolled on its own; <code>chance</code> (formula ok), <code>count</code> (number or <code>[min,max]</code>), <code>if</code>.</td></tr>
+  <tr><td>{"one":[{"prefab":"heart","weight":1}, …]}</td><td>Exactly one, picked by weight. <code>"prefab": null</code> means nothing.</td></tr>
+  </table></div>
+  <div class="pre"><pre>"drop": [
+  { "prefab": "coin", "count": [1, 3] },
+  { "prefab": "key", "if": "not flags.gotKey" },
+  { "one": [ { "prefab": "heart", "weight": 1 }, { "prefab": "bomb_item", "weight": 1 }, { "prefab": null, "weight": 3 } ] }
+]</pre></div>
+</section>
+
+<section id="effects" data-title="Effects & death animations">
+  <h2>Effects &amp; death animations</h2>
+  <p><b>One-shot effects</b> — <code>"effect": "leaf_burst"</code> on tile breaks, bumps, deaths (<code>health.effect</code>), hits (<code>health.hitEffect</code>) or the <code>effect</code> action. Use a <b>sprite</b> name (its frames play once at 12 fps, in front of everything) or a <b>prefab</b> name (spawned there, so it can carry its own sound, particles, rules and lifetime).</p>
+  <p><b>Death animations</b> — give the sprite an <code>"anim": {"die": [4,5,6]}</code>. When it dies it stops, plays those frames, then drops its loot and disappears. <code>health.dieTime</code> sets the length yourself.</p>
+  <div class="pre"><pre>"sprites": { "leaf_burst": { "w": 16, "h": 16, "frames": [ [ … ], [ … ], [ … ], [ … ] ] } },
+"tiles":   { "b": { "sprite": "bush", "solid": true, "break": { "effect": "leaf_burst" } } },
+"prefabs": { "pot_smash": { "sprite": { "name": "pot_shards", "fps": 10, "loop": false },
+                            "lifetime": { "t": 0.4 }, "noCollide": true, "layer": 1,
+                            "rules": [ { "on": "spawn", "do": [ { "sound": "crash" }, { "shake": 0.1 } ] } ] } }</pre></div>
+</section>
+
+<section id="save" data-title="Singletons & saving">
+  <h2>Singletons &amp; saving</h2>
+  <p><b>Singletons</b> in <code>meta.singletons</code> exist once for the whole game and keep running in every scene — perfect for day/night clocks, quest trackers and weather.</p>
+  <div class="pre"><pre>"meta": { "singletons": ["clock"], "persist": ["day", "gold", "inv"] },
+"prefabs": { "clock": { "rules": [ { "on": "every", "t": 60, "do": [ { "add": "day" }, { "emit": "newDay" } ] } ] } }</pre></div>
+  <p><b>Save memory</b> works like a SNES battery: <code>{"save":true}</code> stores the variables listed in <code>meta.persist</code>, <code>{"load":true}</code> brings them back, <code>{"erase":true}</code> clears them, and <code>hasSave()</code> shows a Continue option.</p>
+</section>
+
+<section id="controls" data-title="Controls, feel & multiplayer">
+  <h2>Controls, feel &amp; multiplayer</h2>
+  <div class="tbl"><table><tr><th>Input</th><th>Touch / keyboard / gamepad</th></tr>
+  <tr><td>up down left right</td><td>D-pad · arrows or WASD · stick / d-pad</td></tr>
+  <tr><td>a</td><td>A · Z, J or Space · bottom face button</td></tr>
+  <tr><td>b</td><td>B · X or K</td></tr>
+  <tr><td>x / y</td><td>X, Y · C/U, V/I</td></tr>
+  <tr><td>start / select</td><td>Start, Select · Enter, Shift</td></tr>
+  </table></div>
+  <p><b>Haptics</b> buzz automatically when the player is hurt, dies, stomps, picks up or breaks something; add your own with <code>{"haptic":…}</code>. <b>Motion</b>: with <code>meta.motion</code>, formulas read <code>tilt.x</code>/<code>tilt.y</code> (−1…1) and rules can use <code>{"on":"shake"}</code>; karts steer with tilt. Players adjust both under <b>Controls</b>.</p>
+  <p><b>Multiplayer</b>: up to 4 players over a direct peer-to-peer link. Extra players copy player 1’s prefab (or <code>meta.coop</code>), are tagged <code>player</code> and <code>p2</code>–<code>p4</code>, and their health var gets the number appended (<code>hp2</code>).</p>
+</section>
+
+<section id="recipes" data-title="Recipes">
+  <h2>Recipes</h2>
+  <h3>Locked door that needs a key</h3>
+  <div class="pre"><pre>"L": { "sprite": "locked_door", "solid": true, "tags": ["lock"],
+       "rules": [ { "on": "touch", "tag": "player", "do": [
+         { "if": "keys > 0", "then": [ { "add": "keys", "value": -1 }, { "sound": "unlock" }, { "effect": "dust", "at": "self" }, { "destroy": "self" } ],
+           "else": [ { "say": ["It's locked."] } ] } ] } ] }</pre></div>
+  <h3>Shop counter with a menu</h3>
+  <div class="pre"><pre>"shopkeep": { "sprite": { "name": "merchant" }, "solid": true, "talk": { "name": "Merchant", "lines": [
+  { "text": "What'll it be? You have {gold} gold.", "choices": [
+    { "text": "Lamp (50)", "if": "not has(inv.items,'lamp')",
+      "do": [ { "if": "gold >= 50", "then": [ {"add":"gold","value":-50}, {"push":"inv.items","value":"lamp"}, {"say":["A fine choice!"]} ],
+                "else": [ {"say":["You need more gold."]} ] } ] },
+    { "text": "Potion (10)", "if": "gold >= 10", "do": [ {"add":"gold","value":-10}, {"add":"inv.potions"} ], "lines": ["Stay safe out there."] },
+    { "text": "Just looking", "cancel": true, "lines": ["Come again!"] } ] } ] } }</pre></div>
+  <h3>Crop that grows each day</h3>
+  <div class="pre"><pre>"crop": { "tags": ["crop"], "sprite": { "name": "sprout" }, "vars": { "stage": 0 },
+  "rules": [
+    { "on": "event", "name": "newDay", "do": [ { "if": "self.stage < 3", "then": [ { "add": "self.stage" } ] } ] },
+    { "on": "when", "if": "self.stage >= 3", "do": [ { "setSprite": "turnip" }, { "tag": "ripe" } ] },
+    { "on": "touch", "tag": "player", "do": [ { "if": "has(self, 'ripe')", "then": [ { "add": "inv.turnips" }, { "effect": "sparkle", "at": "self" }, { "destroy": "self" } ] } ] }
+  ] }</pre></div>
+  <h3>Boss with a second phase</h3>
+  <div class="pre"><pre>"rules": [ { "on": "when", "if": "self.hp <= self.maxhp / 2", "do": [
+  { "text": "The golem is furious!", "t": 1.5 }, { "shake": 0.5 },
+  { "comp": "ai.speed", "value": 70 }, { "comp": "attack.cooldown", "value": 0.6 }, { "setSprite": "golem_angry" } ] } ]</pre></div>
+  <p class="hint">A one-off speed-up like this is fine with a plain rule. For a boss with several real phases — different attacks, a defeated state it survives into — use <a href="#states">states</a> instead, below.</p>
+  <h3>Boss that survives to a defeated state</h3>
+  <div class="pre"><pre>"states": {
+  "start": "phase1",
+  "phase1": { "ai": {"type":"chase","speed":40},
+              "rules": [ {"on":"hit","if":"self.hp <= self.maxhp / 2","goto":"phase2"} ] },
+  "phase2": { "enter": [ {"shake":0.4}, {"setSprite":"golem_angry"} ], "ai": {"type":"chase","speed":80},
+              "attack": {"auto":true,"prefab":"boulder","cooldown":0.6},
+              "rules": [ {"on":"die","do":[ {"cancelDeath":true}, {"goto":"defeated"} ]} ] },
+  "defeated": { "enter": [ {"text":"The golem crumbles!","t":2}, {"add":"gold","value":100} ], "ai": {"type":"turret"} }
+}</pre></div>
+  <h3>Reusable enemy behavior</h3>
+  <div class="pre"><pre>"behaviors": { "patrols": { "params": {"moveSpeed":30}, "tags": ["enemy"], "ai": {"type":"patrol","speed":"=self.moveSpeed"} } },
+"prefabs": {
+  "slime":  { "sprite": {"name":"slime"},  "body": {"w":12,"h":9}, "health": {"hp":1}, "use": ["patrols"] },
+  "turtle": { "sprite": {"name":"turtle"}, "body": {"w":14,"h":11}, "health": {"hp":3}, "use": [ {"patrols":{"moveSpeed":15}} ] }
+}</pre></div>
+  <h3>Lap counter with a checkpoint</h3>
+  <div class="pre"><pre>{ "on": "tile", "tile": "C", "tag": "player", "do": [ { "set": "cp", "value": 1 } ] },
+{ "on": "tile", "tile": "F", "tag": "player", "do": [ { "if": "cp == 1", "then": [ { "set": "cp", "value": 0 }, { "add": "lap" } ] } ] }</pre></div>
+</section>
+
+<p class="empty" id="none" hidden>Nothing matches. Try a shorter word.</p>
+</main>
+
+<script>
+(function () {
+  const PAL = ['#000000','#222034','#45283c','#663931','#8f563b','#df7126','#d9a066','#eec39a','#fbf236','#99e550','#6abe30','#37946e','#4b692f','#524b24','#323c39','#3f3f74','#306082','#5b6ee1','#639bff','#5fcde4','#cbdbfc','#ffffff','#9badb7','#847e87','#696a6a','#595652','#76428a','#ac3232','#d95763','#d77bba','#8f974a','#8a6f30'];
+  const CH = '0123456789abcdefghijklmnopqrstuv';
+  document.getElementById('pal').innerHTML = PAL.map((c, i) => `<div class="sw"><i style="background:${c}"></i><b><span>${CH[i]}</span><span>${i}</span></b></div>`).join('');
+  const NAMES = ['black','midnight','plum','dark brown','brown','orange','tan','skin','yellow','lime','green','teal','dark green','dark olive','slate','indigo','deep blue','blue','sky','cyan','pale blue','white','blue grey','grey','dark grey','charcoal','purple','red','rose','pink','olive','gold'];
+  document.querySelectorAll('#pal .sw').forEach((el, i) => el.title = NAMES[i]);
+
+  // light JSON colouring for examples
+  document.querySelectorAll('pre').forEach((pre) => {
+    if (pre.querySelector('span')) return;
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    pre.innerHTML = esc(pre.textContent)
+      .replace(/("(?:[^"\\]|\\.)*")(\s*:)/g, '<span class="k">$1</span>$2')
+      .replace(/(:\s*|[\[,]\s*)("=(?:[^"\\]|\\.)*")/g, '$1<span class="f">$2</span>')
+      .replace(/("if":\s*)("(?:[^"\\]|\\.)*")/g, '$1<span class="f">$2</span>')
+      .replace(/(:\s*|[\[,]\s*)("(?:[^"\\=]|\\.)(?:[^"\\]|\\.)*")/g, '$1<span class="s">$2</span>')
+      .replace(/(^|[\s:\[,])(-?\d+\.?\d*)(?=[\s,\]\}])/g, '$1<span class="n">$2</span>');
+  });
+  document.querySelectorAll('.pre').forEach((box) => {
+    const b = document.createElement('button');
+    b.className = 'copy'; b.type = 'button'; b.textContent = 'Copy';
+    b.onclick = async () => {
+      const text = box.querySelector('pre').textContent;
+      try { await navigator.clipboard.writeText(text); b.textContent = 'Copied'; } catch (e) { b.textContent = 'Select it'; }
+      setTimeout(() => (b.textContent = 'Copy'), 1400);
+    };
+    box.appendChild(b);
+  });
+
+  // table of contents
+  const toc = document.getElementById('toc'), btn = document.getElementById('toc-btn');
+  const secs = [...document.querySelectorAll('main section')];
+  toc.innerHTML = secs.map((s) => `<a href="#${s.id}">${s.dataset.title}</a>`).join('');
+  btn.onclick = () => { const o = toc.classList.toggle('open'); btn.setAttribute('aria-expanded', String(o)); };
+  toc.onclick = (e) => { if (e.target.closest('a')) { toc.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } };
+
+  // search: filters table rows, blocks and whole sections
+  const q = document.getElementById('q'), none = document.getElementById('none');
+  const blocks = (s) => [...s.querySelectorAll('tr:not(:first-child), p, .pre, h3, .pal, .note')];
+  q.addEventListener('input', () => {
+    const term = q.value.trim().toLowerCase();
+    let any = false;
+    for (const s of secs) {
+      const items = blocks(s);
+      if (!term) { s.hidden = false; items.forEach((el) => (el.hidden = false)); any = true; continue; }
+      const titleHit = (s.dataset.title + ' ' + s.id).toLowerCase().includes(term);
+      let hits = 0;
+      for (const el of items) {
+        const hit = titleHit || el.textContent.toLowerCase().includes(term);
+        el.hidden = !hit;
+        if (hit) hits++;
+      }
+      s.querySelectorAll('.tbl').forEach((t) => (t.hidden = ![...t.querySelectorAll('tr:not(:first-child)')].some((r) => !r.hidden)));
+      s.hidden = !hits;
+      if (hits) any = true;
+    }
+    none.hidden = any;
+    if (term) window.scrollTo({ top: 0 });
+  });
+  if (location.hash.startsWith('#q=')) { q.value = decodeURIComponent(location.hash.slice(3)); q.dispatchEvent(new Event('input')); }
+})();
+</script>
+</body>
+</html>

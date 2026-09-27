@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#4c3d78">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="A data-driven fantasy console: build small games in JSON, draw sprites, ask an AI to write carts, and play together peer to peer.">
+<title>Data Console</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%235b4a86'/%3E%3Crect x='3' y='3' width='10' height='7' fill='%23222034'/%3E%3Ccircle cx='11' cy='12.5' r='1.3' fill='%23d8433b'/%3E%3Ccircle cx='5' cy='12.5' r='1.3' fill='%23e7b331'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/console.css?v=12">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Data Console</span><span id="linkDot" class="linkdot" title="Link status"></span></div>
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <button data-tab="play" class="on">Play</button>
+      <button data-tab="code">Code</button>
+      <button data-tab="sprite">Sprites</button>
+      <button data-tab="map">Maps</button>
+      <button data-tab="ai">AI</button>
+      <button data-tab="net">Link</button>
+      <button data-tab="carts">Carts</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- PLAY -->
+    <section class="tab on" id="tab-play" aria-label="Play">
+      <div class="shell">
+        <div class="bezel">
+          <div class="screen-wrap" id="screenWrap">
+            <canvas id="screen" width="256" height="224" aria-label="Game screen"></canvas>
+            <button class="tapstart" id="tapStart">Tap to power on</button>
+          </div>
+          <div class="bezel-foot"><span class="power" aria-hidden="true"></span><span id="cartTitle">No cart</span><button id="ctlBtn" class="devbtn">Controls</button><button id="devBtn" class="devbtn">Dev</button></div>
+        </div>
+        <div class="controls">
+          <div class="zone dpad-zone" id="dpadZone">
+            <div class="dpad" id="dpad" role="group" aria-label="Direction pad">
+              <span class="arm d-up"></span><span class="arm d-down"></span><span class="arm d-left"></span><span class="arm d-right"></span><span class="hub"></span>
+            </div>
+          </div>
+          <div class="sys">
+            <button class="pill" data-btn="select">Select</button>
+            <button class="pill" data-btn="start">Start</button>
+          </div>
+          <div class="zone face-zone" id="faceZone">
+            <div class="face" role="group" aria-label="Action buttons">
+              <span class="fbtn fy" data-face="y">Y</span>
+              <span class="fbtn fx" data-face="x">X</span>
+              <span class="fbtn fb" data-face="b">B</span>
+              <span class="fbtn fa" data-face="a">A</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="playbar">
+        <button id="btnRestart">Restart</button>
+        <button id="btnMute" aria-pressed="true">Sound on</button>
+        <button id="btnFull">Full screen</button>
+      </div>
+    </section>
+
+    <!-- CODE -->
+    <section class="tab" id="tab-code" aria-label="Code">
+      <div class="toolbar">
+        <button class="primary" id="codeApply" title="Apply changes to the running game (Ctrl/⌘-S)">Apply</button>
+        <button id="codeRun" title="Apply and switch to Play (Ctrl/⌘-Enter)">▶ Play</button>
+        <button id="codeFind">Find</button>
+        <span class="seg"><button id="codeFontDown" aria-label="Smaller text">A−</button><button id="codeFontUp" aria-label="Larger text">A+</button></span>
+        <span class="more">
+          <button id="codeMoreBtn" aria-expanded="false" aria-controls="codeMore">More ▾</button>
+          <span class="more-menu" id="codeMore" hidden>
+            <a class="menu-link" href="reference.html" target="_blank" rel="noopener">Reference ↗</a>
+            <button id="codeRestart">Restart game</button>
+            <button id="codeTidy">Clean up</button>
+            <button id="codeCheck">Check</button>
+            <button id="codeExport">Export</button>
+            <label class="filebtn">Import<input type="file" id="codeImport" accept=".json,application/json,text/plain"></label>
+          </span>
+        </span>
+      </div>
+      <div class="modbar">
+        <button id="codeModBtn" class="modbtn" aria-expanded="false" aria-controls="codeModPanel"><span class="modlabel" id="codeModLabel">Whole cart</span><span aria-hidden="true">▾</span></button>
+        <button id="codeModRename" hidden>Rename</button>
+        <button id="codeModDelete" class="quiet" hidden>Delete</button>
+      </div>
+      <div class="modpanel" id="codeModPanel" hidden></div>
+      <div class="report" id="codeReport" aria-live="polite"></div>
+      <div id="codeEditor" class="code-host"></div>
+    </section>
+
+    <!-- SPRITES -->
+    <section class="tab" id="tab-sprite" aria-label="Sprites">
+      <div class="toolbar">
+        <select id="spSelect" aria-label="Sprite"></select>
+        <button id="spNew">New</button>
+        <label class="filebtn">Import image<input type="file" id="spImport" accept="image/*"></label>
+        <button id="spDel" class="quiet">Delete</button>
+      </div>
+      <div class="sp-body">
+        <div class="sp-canvas-wrap" id="spCanvasWrap"><canvas id="spCanvas" aria-label="Pixel canvas"></canvas></div>
+        <div class="sp-side">
+          <div class="row">
+            <button id="spPrev" aria-label="Previous frame">‹</button>
+            <span id="spFrameLabel" class="framelabel">1 / 1</span>
+            <button id="spNext" aria-label="Next frame">›</button>
+            <button id="spAddF">New frame</button>
+            <button id="spDupF">Copy frame</button>
+            <button id="spDelF" class="quiet">Remove frame</button>
+          </div>
+          <div class="row tools">
+            <button data-tool="pen" class="on">Pencil</button>
+            <button data-tool="erase">Eraser</button>
+            <button data-tool="fill">Fill</button>
+            <button data-tool="pick">Pick</button>
+            <button id="spUndo">Undo</button>
+          </div>
+          <div class="palette" id="spPalette"></div>
+          <div class="row preview">
+            <canvas id="spPreview" width="64" height="64" aria-label="Animation preview"></canvas>
+            <div>
+              <label class="inline">Draw size
+                <select id="spScale"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select>
+              </label>
+              <p class="hint" id="spInfo"></p>
+              <button id="spConvert" hidden>Convert to pixels</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAPS -->
+    <section class="tab" id="tab-map" aria-label="Maps">
+      <div class="toolbar">
+        <select id="mapScene" aria-label="Scene"></select>
+        <button id="mapNewScene">New scene</button>
+        <span class="seg"><button id="mapPaint" class="on">Paint</button><button id="mapPan">Scroll</button></span>
+        <span class="seg"><button id="mapZoomOut" aria-label="Zoom out">−</button><button id="mapZoomIn" aria-label="Zoom in">+</button></span>
+      </div>
+      <div class="brushes" id="mapBrushes"></div>
+      <div class="map-wrap" id="mapWrap"><canvas id="mapCanvas" aria-label="Map"></canvas></div>
+      <div class="toolbar foot">
+        <label class="inline">Width <input id="mapW" type="number" min="1" max="512" inputmode="numeric"></label>
+        <label class="inline">Height <input id="mapH" type="number" min="1" max="512" inputmode="numeric"></label>
+        <button id="mapResize">Resize</button>
+        <button id="mapAddChar">New brush</button>
+        <button id="mapEditChar">Edit brush</button>
+      </div>
+    </section>
+
+    <!-- AI -->
+    <section class="tab" id="tab-ai" aria-label="AI">
+      <div class="panel">
+        <h2>Ask an AI to build a game</h2>
+        <p class="lede">Describe the game, copy the prompt into Gemini, ChatGPT or Claude, then paste the whole reply below. Curly quotes, code fences and chatty intros get cleaned up for you.</p>
+        <div class="seg wide" id="aiMode"><button data-mode="new" class="on">New game</button><button data-mode="edit">Change this cart</button></div>
+        <label class="field">What should it be?
+          <textarea id="aiIdea" rows="4" placeholder="A platformer like Mario mixed with a Zelda-style overworld. Collect three gems to open the castle."></textarea>
+        </label>
+        <div id="aiGenreRow"><p class="fieldlabel">Mix these genres</p><div class="chips" id="aiGenres"></div></div>
+        <div class="opts">
+          <label class="check"><input type="checkbox" id="aiCoop"> Built for co-op play</label>
+          <label class="inline">Art
+            <select id="aiArt"><option value="pixels">AI draws pixel art in the JSON</option><option value="files">I'll supply image files in assets/</option></select>
+          </label>
+          <label class="inline">Size
+            <select id="aiSize"><option value="small">Small — 1 to 2 levels</option><option value="medium" selected>Medium — 3 to 4 levels</option><option value="large">Large — 5+ levels and a boss</option></select>
+          </label>
+        </div>
+        <button class="primary" id="aiBuild">Write the prompt</button>
+        <div id="aiPromptBox" hidden>
+          <textarea id="aiPrompt" class="code small" rows="7" readonly aria-label="Generated prompt"></textarea>
+          <div class="row"><button class="primary" id="aiCopy">Copy prompt</button><span class="hint" id="aiPromptSize"></span></div>
+        </div>
+
+        <h2>Paste the reply</h2>
+        <textarea id="aiReply" class="code small" rows="7" placeholder="Paste everything the AI sent back."></textarea>
+        <div class="row"><button class="primary" id="aiLoad">Clean up and load</button><button id="aiFix" hidden>Copy a fix-it prompt</button></div>
+        <div class="report" id="aiReport" aria-live="polite"></div>
+        <p class="hint">Long games can get cut off by the AI. If that happens, the loader closes the brackets and tells you — ask the AI to "continue" or use the fix-it prompt. <button class="link" id="aiSpec">Copy the format reference</button> · <a class="link" href="reference.html" target="_blank" rel="noopener">Open the full reference</a></p>
+      </div>
+    </section>
+
+    <!-- LINK -->
+    <section class="tab" id="tab-net" aria-label="Link">
+      <div class="panel">
+        <h2>Play together</h2>
+        <p class="lede">One phone hosts and runs the game. Up to three friends join with the room code and play over a direct peer-to-peer link — no server, no accounts.</p>
+        <button class="primary big" id="netHost">Host this cart</button>
+        <div class="room" id="netRoom" hidden>
+          <span class="roomlabel">Room code</span>
+          <strong id="netCode" class="code-big"></strong>
+          <button id="netCopyLink">Share invite link</button>
+        </div>
+        <div class="joinrow" id="netJoinRow">
+          <input id="netJoinCode" placeholder="Room code" maxlength="6" autocapitalize="characters" autocomplete="off" aria-label="Room code">
+          <button id="netJoin">Join</button>
+        </div>
+        <ul class="peers" id="netPeers"></ul>
+        <div class="row">
+          <button id="netSend" hidden>Send my cart to everyone</button>
+          <button id="netSave" hidden>Save this cart</button>
+          <button id="netLeave" class="quiet" hidden>Leave room</button>
+        </div>
+        <p class="status" id="netStatus">Offline</p>
+        <p class="hint">The host must keep Data Console open. Guests see the host's game streamed live, so a slow host means a slow game for everyone.</p>
+      </div>
+    </section>
+
+    <!-- CARTS -->
+    <section class="tab" id="tab-carts" aria-label="Carts">
+      <div class="toolbar">
+        <button class="primary" id="cartSave">Save current</button>
+        <button id="cartShare">Copy share link</button>
+        <button id="cartDemo">Load demo</button>
+        <button id="cartKart">Kart demo</button>
+        <button id="cartNew">New blank</button>
+      </div>
+      <ul class="cartlist" id="cartList"></ul>
+    </section>
+  </main>
+</div>
+<dialog id="brushDlg" class="sheet" aria-labelledby="bdTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <h3 id="bdTitle">New brush</h3>
+      <button type="button" id="bdCancel" class="quiet" aria-label="Close">Cancel</button>
+    </div>
+    <div class="bd-top">
+      <label class="inline">Key <input id="bdChar" class="charin" maxlength="1" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="bdHelp"></label>
+      <span class="seg" id="bdType"><button type="button" data-bt="tile" class="on">Tile</button><button type="button" data-bt="ent">Entity</button></span>
+    </div>
+    <p class="hint" id="bdHelp"></p>
+    <input id="bdSearch" type="search" placeholder="Search" aria-label="Search" autocapitalize="off" autocorrect="off">
+    <div class="bd-grid" id="bdGrid" role="listbox" aria-label="Choose art"></div>
+    <div class="bd-props" id="bdProps">
+      <label class="check"><input type="checkbox" id="bdSolid"> Solid</label>
+      <label class="check"><input type="checkbox" id="bdOneWay"> One-way</label>
+      <label class="check"><input type="checkbox" id="bdHurt"> Hurts</label>
+      <label class="check"><input type="checkbox" id="bdKill"> Kills</label>
+      <label class="check"><input type="checkbox" id="bdFront"> Draw in front</label>
+      <label class="check"><input type="checkbox" id="bdBreak"> Breakable by attacks</label>
+    </div>
+    <div class="bd-actions">
+      <button type="button" id="bdRemove" class="quiet">Remove brush</button>
+      <button type="button" class="primary" id="bdSave">Add brush</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="ctlDlg" class="sheet" aria-labelledby="ctlTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="ctlTitle">Controls &amp; feel</h3><button type="button" class="quiet" data-close>Done</button></div>
+    <div class="dev-sec">
+      <p class="fieldlabel">Haptics</p>
+      <div class="dev-checks">
+        <label class="check"><input type="checkbox" id="ctlHaptics"> Gameplay buzzes</label>
+        <label class="check"><input type="checkbox" id="ctlTicks"> Tick on button presses</label>
+      </div>
+      <div class="dev-row">
+        <label class="inline" id="ctlStrengthRow">Strength
+          <select id="ctlStrength"><option value="0.6">Soft</option><option value="1">Normal</option><option value="1.5">Strong</option></select>
+        </label>
+        <button type="button" id="ctlTest">Test</button>
+      </div>
+      <p class="hint" id="ctlHapticNote"></p>
+    </div>
+    <div class="dev-sec">
+      <p class="fieldlabel">Motion</p>
+      <div class="dev-checks">
+        <label class="check"><input type="checkbox" id="ctlMotion"> Allow tilt &amp; shake</label>
+        <label class="check"><input type="checkbox" id="ctlSteer"> Steer with tilt</label>
+      </div>
+      <div class="dev-row tilt-row">
+        <div class="tiltpad" aria-hidden="true"><span id="ctlDot"></span></div>
+        <div class="tilt-side">
+          <button type="button" id="ctlCalibrate">Set level here</button>
+          <label class="inline">Sensitivity
+            <select id="ctlRange"><option value="40">Low</option><option value="25">Normal</option><option value="15">High</option></select>
+          </label>
+        </div>
+      </div>
+      <p class="hint" id="ctlMotionNote">Hold the phone how you like to play, then tap "Set level here".</p>
+    </div>
+  </div>
+</dialog>
+<dialog id="devDlg" class="sheet" aria-labelledby="devTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="devTitle">Dev tools</h3><button type="button" class="quiet" data-close>Done</button></div>
+    <div class="dev-sec">
+      <p class="fieldlabel">Jump to a scene</p>
+      <div class="dev-row">
+        <select id="devScene" aria-label="Scene"></select>
+        <select id="devFrom" aria-label="Arrive as if coming from"></select>
+        <button type="button" class="primary" id="devGo">Go</button>
+      </div>
+      <p class="hint">"Coming from" places you at the doorway that leads back to that scene, so you can test a door without walking there.</p>
+    </div>
+    <div class="dev-sec">
+      <p class="fieldlabel">Save state</p>
+      <div class="dev-row">
+        <button type="button" id="devSave">Save here</button>
+        <button type="button" id="devLoad">Load</button>
+        <button type="button" id="devRestartScene">Restart scene</button>
+        <button type="button" id="devRestartGame" class="quiet">Restart game</button>
+      </div>
+      <p class="hint" id="devStateInfo">No saved state yet.</p>
+    </div>
+    <div class="dev-sec dev-checks">
+      <label class="check"><input type="checkbox" id="devGod"> God mode</label>
+      <label class="check"><input type="checkbox" id="devBoxes"> Show hitboxes</label>
+      <label class="check"><input type="checkbox" id="devLive"> Live window while editing</label>
+    </div>
+    <div class="dev-sec">
+      <button type="button" id="devInspect" class="wide">Inspect an entity…</button>
+    </div>
+    <div class="dev-sec">
+      <p class="fieldlabel">Variables</p>
+      <div class="dev-vars" id="devVars"></div>
+    </div>
+  </div>
+</dialog>
+<dialog id="inspDlg" class="sheet" aria-labelledby="inspTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head"><h3 id="inspTitle">Entity</h3><button type="button" class="quiet" data-close>Close</button></div>
+    <p class="hint" id="inspInfo"></p>
+    <div class="dev-row">
+      <select id="inspAdd" aria-label="Add a component"></select>
+      <button type="button" id="inspAddBtn">Add</button>
+    </div>
+    <div id="inspEditor" class="insp-host"></div>
+    <div class="report" id="inspReport"></div>
+    <div class="bd-actions wrap">
+      <button type="button" id="inspDelete" class="quiet">Remove entity</button>
+      <button type="button" id="inspApply">Apply to this one</button>
+      <button type="button" class="primary" id="inspSave">Save to prefab</button>
+    </div>
+  </div>
+</dialog>
+<div id="livePip" class="pip" hidden>
+  <canvas id="pipCanvas" width="256" height="224" aria-label="Live game view — tap to open Play"></canvas>
+  <div class="pip-bar"><span class="pip-grip" aria-hidden="true">⋮⋮</span><button type="button" id="pipPause" aria-label="Pause live game">❚❚</button><button type="button" id="pipClose" aria-label="Close live window">✕</button></div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/core.js?v=12"></script>
+<script src="js/expr.js?v=12"></script>
+<script src="js/audio.js?v=12"></script>
+<script src="js/sensors.js?v=12"></script>
+<script src="js/input.js?v=12"></script>
+<script src="js/engine.js?v=12"></script>
+<script src="js/demo.js?v=12"></script>
+<script src="js/ai.js?v=12"></script>
+<script src="js/net.js?v=12"></script>
+<script src="js/codeeditor.js?v=12"></script>
+<script src="js/editor.js?v=12"></script>
+</body>
+</html>
