@@ -552,7 +552,7 @@ mark { background: var(--mark); color: #1d1830; border-radius: 3px; }
 
 <section id="formulas" data-title="Formulas">
   <h2>Formulas</h2>
-  <p>A string starting with <code>=</code> is calculated. Conditions can be plain formula text. Text anywhere can embed formulas in braces: <code>"Day {day} — {inv.seeds} seeds"</code>. Formulas only read game values; nothing else can run.</p>
+  <p>A string starting with <code>=</code> is calculated. Conditions can be plain formula text. Text anywhere can embed formulas in braces: <code>"Day {day} — {inv.seeds} seeds"</code>. A whole text field can also just be one bare formula, e.g. <code>"text": "='Day ' + str(day)"</code> — either style works everywhere text does; <code>{braces}</code> tends to read cleaner for a few values dropped into a sentence, a bare formula for a fully computed line. Formulas only read game values; nothing else can run.</p>
   <div class="pre"><pre>{ "add": "gold", "value": "=price * qty" }
 { "if": "gold >= 50 and not flags.boughtSword", "then": [ … ] }
 { "velocity": "self", "vy": "=-200 - self.power * 20" }</pre></div>

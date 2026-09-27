@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/console.css?v=12">
+<link rel="stylesheet" href="css/console.css?v=13">
 </head>
 <body>
 <div id="app">
@@ -221,9 +221,16 @@
       <div class="toolbar">
         <button class="primary" id="cartSave">Save current</button>
         <button id="cartShare">Copy share link</button>
-        <button id="cartDemo">Load demo</button>
-        <button id="cartKart">Kart demo</button>
         <button id="cartNew">New blank</button>
+      </div>
+      <div class="demoSec">
+        <p class="fieldlabel">Example games</p>
+        <div class="demoGrid" id="demoGrid">
+          <button class="demoCard" data-demo="DEMO_CART"><strong>Flag of Gold</strong><span>Zelda-style overworld into a Mario-style cave — doors, sword combat, breakable blocks</span></button>
+          <button class="demoCard" data-demo="KART_CART"><strong>Kart Circuit</strong><span>Mode 7 racing — AI opponents, boost pads, jump ramps, tilt steering</span></button>
+          <button class="demoCard" data-demo="KEEP_CART"><strong>Ember Keep</strong><span>Behaviors &amp; inheritance, a state-machine boss, branching shop dialogue, loot, saving</span></button>
+          <button class="demoCard" data-demo="STACK_CART"><strong>Stack World</strong><span>Sprite-stacked scenery, then a rotating stacked buggy in Mode 7</span></button>
+        </div>
       </div>
       <ul class="cartlist" id="cartList"></ul>
     </section>
@@ -351,16 +358,16 @@
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="js/core.js?v=12"></script>
-<script src="js/expr.js?v=12"></script>
-<script src="js/audio.js?v=12"></script>
-<script src="js/sensors.js?v=12"></script>
-<script src="js/input.js?v=12"></script>
-<script src="js/engine.js?v=12"></script>
-<script src="js/demo.js?v=12"></script>
-<script src="js/ai.js?v=12"></script>
-<script src="js/net.js?v=12"></script>
-<script src="js/codeeditor.js?v=12"></script>
-<script src="js/editor.js?v=12"></script>
+<script src="js/core.js?v=13"></script>
+<script src="js/expr.js?v=13"></script>
+<script src="js/audio.js?v=13"></script>
+<script src="js/sensors.js?v=13"></script>
+<script src="js/input.js?v=13"></script>
+<script src="js/engine.js?v=13"></script>
+<script src="js/demo.js?v=13"></script>
+<script src="js/ai.js?v=13"></script>
+<script src="js/net.js?v=13"></script>
+<script src="js/codeeditor.js?v=13"></script>
+<script src="js/editor.js?v=13"></script>
 </body>
 </html>
