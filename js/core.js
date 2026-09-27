@@ -393,6 +393,7 @@
       if (ch === '.') { Wn('Tile "." is reserved for empty space — ignored.'); delete T[ch]; continue; }
       if (!d || typeof d !== 'object') { E(`Tile "${ch}" must be an object.`); delete T[ch]; continue; }
       if (d.sprite && !S[d.sprite]) Wn(`Tile "${ch}" uses missing sprite "${d.sprite}".`);
+      if (d.sprite && S[d.sprite] && S[d.sprite].stack) Wn(`Tile "${ch}" uses stack sprite "${d.sprite}" — stacked sprites can't draw as flat tile art; it will show as a flat colour instead. Place it as an entity in the legend instead.`);
       if (d.hit) {
         if (d.hit.become != null && d.hit.become !== '.' && !isFormula(d.hit.become) && !T[d.hit.become]) Wn(`Tile "${ch}" becomes unknown tile "${d.hit.become}".`);
         if (d.hit.spawn && !P[d.hit.spawn]) E(`Tile "${ch}" spawns missing prefab "${d.hit.spawn}".`);

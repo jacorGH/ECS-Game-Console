@@ -1407,7 +1407,9 @@
     }
     /* text with {var} or {any expression} */
     fmt(s, ctx) {
-      return String(s ?? '').replace(/\{([^{}]+)\}/g, (m, inner) => {
+      s = String(s ?? '');
+      if (isFormula(s)) { try { return DC.Expr.str(DC.Expr.evaluate(s, this.exprEnv(ctx))); } catch (e) { this.warn(`Formula "${s.slice(0, 60)}": ${e.message}`); return ''; } }
+      return s.replace(/\{([^{}]+)\}/g, (m, inner) => {
         if (/^\w+$/.test(inner) && inner in this.vars) return DC.Expr.str(this.vars[inner]);
         try { return DC.Expr.str(DC.Expr.evaluate(inner, this.exprEnv(ctx))); } catch (e) { return m; }
       });
@@ -1906,7 +1908,9 @@
         const t = this.cart.tiles[this.map[y][x]];
         if (!t) continue;
         const fr = t.sprite && this.frames[t.sprite];
-        if (fr) { const f = fr[0]; g.drawImage(f.src, f.sx, f.sy, f.w, f.h, x * d, y * d, d, d); }
+        const f = fr && fr[0];
+        if (f && f.stack) { g.fillStyle = this.col(t.color != null ? t.color : 24); g.fillRect(x * d, y * d, d, d); }
+        else if (f) g.drawImage(f.src, f.sx, f.sy, f.w, f.h, x * d, y * d, d, d);
         else if (t.color != null) { g.fillStyle = this.col(t.color); g.fillRect(x * d, y * d, d, d); }
       }
       this.mapTex = c; this.texScale = sc;
@@ -2102,10 +2106,10 @@
           if (!t || ((+t.layer || 0) >= 1) !== front) continue;
           const px = tx * ts - cx, py = ty * ts - cy;
           const fr = t.sprite && this.frames[t.sprite];
-          if (fr) {
-            const f = fr[fr.length > 1 ? Math.floor(this.t * (t.fps != null ? +t.fps : 4)) % fr.length : 0];
-            g.drawImage(f.src, f.sx, f.sy, f.w, f.h, px, py, ts, ts);
-          } else if (t.color != null) { g.fillStyle = this.col(t.color); g.fillRect(px, py, ts, ts); }
+          const f = fr && fr[fr.length > 1 ? Math.floor(this.t * (t.fps != null ? +t.fps : 4)) % fr.length : 0];
+          if (f && f.stack) { g.fillStyle = this.col(t.color != null ? t.color : 24); g.fillRect(px, py, ts, ts); }
+          else if (f) g.drawImage(f.src, f.sx, f.sy, f.w, f.h, px, py, ts, ts);
+          else if (t.color != null) { g.fillStyle = this.col(t.color); g.fillRect(px, py, ts, ts); }
         }
       }
     }

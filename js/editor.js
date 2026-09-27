@@ -1259,8 +1259,13 @@
     initCarts() {
       $('#cartSave').onclick = () => { if (this.syncCode()) { this.libSave(this.cart); toast(`Saved "${this.cart.meta.title}".`); this.cartsRefresh(); } };
       $('#cartNew').onclick = async () => { if (confirm('Start a new blank cart? Save the current one first if you want to keep it.')) { await this.setCart(DC.clone(DC.BLANK_CART)); this.show('code'); } };
-      $('#cartDemo').onclick = async () => { await this.setCart(DC.clone(DC.DEMO_CART)); this.show('play'); };
-      $('#cartKart').onclick = async () => { await this.setCart(DC.clone(DC.KART_CART)); this.show('play'); };
+      $('#demoGrid').onclick = async (e) => {
+        const b = e.target.closest('[data-demo]'); if (!b) return;
+        const cart = DC[b.dataset.demo];
+        if (!cart) return toast('That demo is not available.');
+        await this.setCart(DC.clone(cart));
+        this.show('play');
+      };
       $('#cartShare').onclick = async () => {
         if (!this.syncCode()) return;
         const url = location.origin + location.pathname + '#c=' + (await DC.packCart(this.cart));
