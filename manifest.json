@@ -1,0 +1,17 @@
+{
+  "name": "Data Console",
+  "short_name": "Data Console",
+  "description": "A data-driven fantasy console: build small games in JSON, draw sprites, ask an AI to write carts, and play together peer to peer.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#3c3063",
+  "theme_color": "#4c3d78",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
