@@ -118,6 +118,22 @@
   /* ------------------------------------------------------------------
      JSON scrubber — fixes what chat AIs do to JSON
      ------------------------------------------------------------------ */
+  function findRootEnd(s, start) {
+    let depth = 0, q = null, esc = false;
+    for (let i = start; i < s.length; i++) {
+      const c = s[i];
+      if (q) {
+        if (esc) { esc = false; continue; }
+        if (c === '\\') { esc = true; continue; }
+        if (c === q) q = null;
+        continue;
+      }
+      if (c === '"' || c === "'") { q = c; continue; }
+      if (c === '{' || c === '[') depth++;
+      else if (c === '}' || c === ']') { depth--; if (depth === 0) return i; if (depth < 0) return -1; }
+    }
+    return -1;
+  }
   DC.scrubJSON = function (input) {
     const fixes = [];
     const note = (m) => { if (!fixes.includes(m)) fixes.push(m); };
@@ -129,6 +145,7 @@
     sub(/[\u201C\u201D\u201E\u201F\u2033\u2036\u00AB\u00BB\uFF02\u275D\u275E]/g, '"', 'Straightened curly double quotes');
     sub(/[\u2018\u2019\u201A\u201B\u2032\u2035\uFF07\u275B\u275C]/g, "'", 'Straightened curly single quotes');
     sub(/[\u2212\u2012\u2013](?=\d)/g, '-', 'Fixed minus signs');
+    sub(/\u2026/g, '...', 'Expanded "…" into dots (some AIs compress repeated dots in pixel art)');
     sub(/\uFF1A/g, ':', 'Fixed full-width colons');
     sub(/\uFF0C/g, ',', 'Fixed full-width commas');
     sub(/\r\n?/g, '\n', 'Normalised line endings');
@@ -145,9 +162,16 @@
 
     const first = s.indexOf('{');
     if (first < 0) return { ok: false, error: 'No JSON object found. The reply needs to contain a { ... } cartridge.', fixes, text: s };
-    let last = s.lastIndexOf('}');
+    // if the cartridge object is genuinely complete, ignore anything after it — this is what
+    // catches a leftover second draft or stray fragment the AI appended past the real ending,
+    // which a plain "last }" search can't distinguish from real content
+    const rootEnd = findRootEnd(s, first);
+    let last = rootEnd >= 0 ? rootEnd : s.lastIndexOf('}');
     if (last < first) last = s.length - 1;
-    if (s.slice(0, first).trim() || s.slice(last + 1).trim()) note('Removed text before or after the JSON');
+    const before = s.slice(0, first).trim(), after = s.slice(last + 1).trim();
+    if (before && after) note('Removed text before and after the JSON');
+    else if (before) note('Removed text before the JSON');
+    else if (after) note(rootEnd >= 0 ? "Removed extra content after the cartridge's closing brace (the reply likely included a leftover draft)" : 'Removed text after the JSON');
     s = s.slice(first, last + 1);
 
     try { return { ok: true, data: JSON.parse(s), text: s, fixes }; } catch (e) { /* repair below */ }
