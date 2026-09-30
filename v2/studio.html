@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#14111f">
+<title>Data Console Studio</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="studio/studio.css">
+</head>
+<body>
+<div id="studio">
+
+  <!-- projects -->
+  <div id="screenProjects" class="screen">
+    <header class="bar"><h1>Data Console <span>Studio</span></h1></header>
+    <main class="scroll"><div id="projList" class="projlist"></div></main>
+    <footer class="foot">
+      <button id="btnNew" class="btn primary big" type="button">＋ New game</button>
+      <label class="btn big" for="fileIn">Open a game file</label><input id="fileIn" type="file" accept=".dcart,.json,application/json" hidden>
+    </footer>
+  </div>
+
+  <!-- editor -->
+  <div id="screenEditor" class="screen" hidden>
+    <header class="bar">
+      <button id="btnBack" class="btn sq" type="button" aria-label="All projects">‹</button>
+      <button id="projName" class="pname" type="button" aria-label="Rename project"></button>
+      <span id="saveState" class="save saved">Saved</span>
+      <button id="btnProblems" class="btn warn-fill" type="button" hidden></button>
+      <button id="btnUndo" class="btn sq" type="button" aria-label="Undo" disabled>↶</button>
+      <button id="btnRedo" class="btn sq" type="button" aria-label="Redo" disabled>↷</button>
+      <button id="btnMenu" class="btn sq" type="button" aria-label="Menu">⋯</button>
+    </header>
+
+    <main id="views">
+      <section id="viewMap" class="view">
+        <div class="maptop">
+          <button id="lvlBtn" class="btn" type="button">Level</button>
+          <div class="seg" id="modeSeg"><button type="button" data-mode="tiles" class="on">Tiles</button><button type="button" data-mode="things">Things</button></div>
+        </div>
+        <div class="canvaswrap">
+          <canvas id="mapCanvas" aria-label="Level map"></canvas>
+          <div class="zoom"><button id="zIn" class="btn sq" type="button" aria-label="Zoom in">＋</button><button id="zOut" class="btn sq" type="button" aria-label="Zoom out">－</button><button id="zFit" class="btn sq" type="button" aria-label="Fit to screen">⤢</button><button id="zSolid" class="btn sq tg" type="button" aria-label="Show solid tiles" title="Show solid tiles">▦</button><button id="zSnap" class="btn sq tg" type="button" aria-label="Snap to grid" title="Snap to grid">⊞</button></div>
+        </div>
+        <div id="tools" class="tools"></div>
+        <div id="selBar" class="clipbar selbar" hidden></div>
+        <div id="layerBar" class="layers"></div>
+        <div id="palette" class="palette"></div>
+      </section>
+
+      <section id="viewThings" class="view scroll" hidden>
+        <div class="viewhead"><h2>Things</h2><button id="btnNewThing" class="btn primary" type="button">＋ New thing</button></div>
+        <div id="thingGrid" class="thinggrid"></div>
+      </section>
+
+      <section id="viewArt" class="view scroll" hidden>
+        <div class="viewhead"><h2>Art</h2><div class="hbtns"><label class="btn" for="pngIn">Import PNG</label><input id="pngIn" type="file" accept="image/png,image/gif,image/jpeg,image/webp" hidden><button id="btnNewSprite" class="btn primary" type="button">＋ New sprite</button></div></div>
+        <div id="spriteGrid" class="thinggrid"></div>
+      </section>
+
+      <section id="viewCode" class="view v1code" hidden>
+        <div class="toolbar">
+          <button class="primary" id="codeApply" type="button" title="Apply changes to the game (Ctrl/⌘-S)">Apply</button>
+          <button id="codeRun" type="button" title="Apply and switch to Play (Ctrl/⌘-Enter)">▶ Play</button>
+          <button id="codeFind" type="button">Find</button>
+          <span class="seg"><button id="codeFontDown" type="button" aria-label="Smaller text">A−</button><button id="codeFontUp" type="button" aria-label="Larger text">A+</button></span>
+          <span class="more">
+            <button id="codeMoreBtn" type="button" aria-expanded="false" aria-controls="codeMore">More ▾</button>
+            <span class="more-menu" id="codeMore" hidden>
+              <button id="codeRestart" type="button">Restart game</button>
+              <button id="codeTidy" type="button">Clean up</button>
+              <button id="codeCheck" type="button">Check</button>
+              <button id="codeExport" type="button">Export</button>
+              <label class="filebtn">Import<input type="file" id="codeImport" accept=".json,.dcart,application/json,text/plain" hidden></label>
+            </span>
+          </span>
+        </div>
+        <div class="modbar">
+          <button id="codeModBtn" class="modbtn" type="button" aria-expanded="false" aria-controls="codeModPanel"><span class="modlabel" id="codeModLabel">Whole game</span><span aria-hidden="true">▾</span></button>
+          <button id="codeModRename" type="button" hidden>Rename</button>
+          <button id="codeModDelete" class="quiet" type="button" hidden>Delete</button>
+        </div>
+        <div class="modpanel" id="codeModPanel" hidden></div>
+        <div class="report" id="codeReport" aria-live="polite"></div>
+        <div id="codeEditor" class="code-host"></div>
+      </section>
+
+      <section id="viewGame" class="view scroll" hidden><div id="gameBody" class="gamebody"></div></section>
+
+      <section id="viewPlay" class="view play" hidden>
+        <div class="playscreen" id="playWrap">
+          <canvas id="playCanvas" width="256" height="224" aria-label="Game screen"></canvas>
+          <button class="tapstart" id="tapStart" type="button">Tap to power on</button>
+        </div>
+        <div id="playProblems" class="playproblems" hidden></div>
+        <div class="controls">
+          <div class="zone dpad-zone" id="dpadZone"><div class="dpad" id="dpad" role="group" aria-label="Direction pad"><span class="arm d-up"></span><span class="arm d-down"></span><span class="arm d-left"></span><span class="arm d-right"></span><span class="hub"></span></div></div>
+          <div class="sys"><button class="pill" data-btn="select" type="button">Select</button><button class="pill" data-btn="start" type="button">Start</button></div>
+          <div class="zone face-zone" id="faceZone"><div class="face" role="group" aria-label="Action buttons"><span class="fbtn fy" data-face="y">Y</span><span class="fbtn fx" data-face="x">X</span><span class="fbtn fb" data-face="b">B</span><span class="fbtn fa" data-face="a">A</span></div></div>
+        </div>
+        <div class="playbar"><button id="btnRestart" class="btn" type="button">↻ Restart</button><span id="playStats" class="playstats"></span></div>
+      </section>
+    </main>
+
+    <div id="artEditor" class="artedit" hidden>
+      <header class="bar">
+        <button id="artBack" class="btn sq" type="button" aria-label="Back to art">‹</button>
+        <span id="artName" class="pname"></span>
+        <button id="artUndo" class="btn sq sh-undo" type="button" aria-label="Undo" disabled>↶</button>
+        <button id="artRedo" class="btn sq sh-redo" type="button" aria-label="Redo" disabled>↷</button>
+        <button id="artSave" class="btn sq" type="button" aria-label="Save now" title="Save now">💾</button>
+        <button id="artUse" class="btn" type="button" title="Turn this picture into a thing, give it to a thing, or make it a tile">Use ▾</button>
+        <button id="artMore" class="btn sq" type="button" aria-label="More">⋯</button>
+      </header>
+      <div class="canvaswrap"><canvas id="artCanvas" aria-label="Pixel canvas"></canvas>
+        <div class="zoom"><button id="aZoomIn" class="btn sq" type="button" aria-label="Zoom in">＋</button><button id="aZoomOut" class="btn sq" type="button" aria-label="Zoom out">－</button><button id="aFit" class="btn sq" type="button" aria-label="Fit">⤢</button><button id="aGrid" class="btn sq tg" type="button" title="Grid">⊞</button><button id="aOnion" class="btn sq tg" type="button" title="Show previous frame faintly">🧅</button><button id="aMirror" class="btn sq tg" type="button" title="Mirror left/right">⇋</button><button id="aRef" class="btn sq tg" type="button" title="Show with another sprite" aria-label="Show with another sprite">👥</button></div>
+      </div>
+      <div id="artTools" class="tools"></div>
+      <div id="artClip" class="clipbar" hidden></div>
+      <div id="artPalette" class="palette swatches"></div>
+      <div id="artFrames" class="palette frames"></div>
+    </div>
+
+    <nav id="tabs" class="tabs">
+      <button type="button" data-tab="map" class="on"><span>🗺️</span>Map</button>
+      <button type="button" data-tab="things"><span>🧩</span>Things</button>
+      <button type="button" data-tab="art"><span>🎨</span>Art</button>
+      <button type="button" data-tab="code"><span>📝</span>Code</button>
+      <button type="button" data-tab="game"><span>⚙️</span>Game</button>
+      <button type="button" data-tab="play"><span>▶️</span>Play</button>
+    </nav>
+  </div>
+
+  <div id="sheets"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script src="nozoom.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/expr.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/sensors.js"></script>
+<script src="../js/input.js"></script>
+<script src="../js/codeeditor.js"></script>
+<script src="kernel.js"></script>
+<script src="ext/space.js"></script>
+<script src="ext/platformer.js"></script>
+<script src="ext/combat.js"></script>
+<script src="ext/dialogue.js"></script>
+<script src="ext/farm.js"></script>
+<script src="ext/stealth.js"></script>
+<script src="render.js"></script>
+<script src="runner.js"></script>
+<script src="studio/core.js"></script>
+<script src="studio/v1import.js"></script>
+<script src="studio/starters.js"></script>
+<script src="studio/forms.js"></script>
+<script src="studio/mapview.js"></script>
+<script src="studio/ui.js"></script>
+<script src="studio/art.js"></script>
+<script src="studio/code.js"></script>
+</body>
+</html>

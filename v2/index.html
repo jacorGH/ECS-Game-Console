@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#4c3d78">
+<title>Data Console v2 (spike)</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/console.css">
+<style>* { touch-action: manipulation; } html, body, body * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } canvas, img { -webkit-user-drag: none; }</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Data Console v2</span></div>
+    <nav class="tabs"><a class="tab-btn on" style="pointer-events:none">spike</a><a class="tab-btn" href="../index.html">← v1</a></nav>
+  </header>
+  <main>
+    <section class="tab on" id="tab-play" aria-label="Play">
+      <div class="shell">
+        <div class="bezel">
+          <div class="screen-wrap" id="screenWrap">
+            <canvas id="screen" width="256" height="224" aria-label="Game screen"></canvas>
+            <button class="tapstart" id="tapStart">Tap to power on</button>
+          </div>
+          <div class="bezel-foot"><span class="power" aria-hidden="true"></span><span id="cartTitle">No cart</span><span id="v2Stats" style="font-size:10px;opacity:.7;margin-left:auto"></span></div>
+        </div>
+        <div class="controls">
+          <div class="zone dpad-zone" id="dpadZone">
+            <div class="dpad" id="dpad" role="group" aria-label="Direction pad">
+              <span class="arm d-up"></span><span class="arm d-down"></span><span class="arm d-left"></span><span class="arm d-right"></span><span class="hub"></span>
+            </div>
+          </div>
+          <div class="sys">
+            <button class="pill" data-btn="select">Select</button>
+            <button class="pill" data-btn="start">Start</button>
+          </div>
+          <div class="zone face-zone" id="faceZone">
+            <div class="face" role="group" aria-label="Action buttons">
+              <span class="fbtn fy" data-face="y">Y</span><span class="fbtn fx" data-face="x">X</span>
+              <span class="fbtn fb" data-face="b">B</span><span class="fbtn fa" data-face="a">A</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="playbar">
+        <button id="btnRestart">Restart</button>
+        <button id="btnSave">Save state</button>
+        <button id="btnLoad">Load state</button>
+        <button id="btnMute" aria-pressed="true">Sound on</button>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="nozoom.js"></script>
+<script src="../js/core.js"></script>
+<script src="../js/expr.js"></script>
+<script src="../js/audio.js"></script>
+<script src="../js/sensors.js"></script>
+<script src="../js/input.js"></script>
+<script src="kernel.js"></script>
+<script src="ext/space.js"></script>
+<script src="ext/platformer.js"></script>
+<script src="ext/combat.js"></script>
+<script src="ext/dialogue.js"></script>
+<script src="carts/flag-of-gold.js"></script>
+<script src="render.js"></script>
+<script src="runner.js"></script>
+<script src="platform.js"></script>
+</body>
+</html>

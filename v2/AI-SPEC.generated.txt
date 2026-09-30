@@ -1,0 +1,65 @@
+A Data Console cart is one JSON object: {"format":"DCART-2","meta":{title,width,height,start,player,extensions:[...]},"vars":{},"palettes":{"main":[...]},"sprites":{},"tilesets":{},"maps":{},"prefabs":{},"scenes":{},"rules":[]}.
+A prefab is {"tags":[],"c":{component:{fields}},"v":{entity vars},"rules":[rule]}. A rule is {"on":trigger,...trigger params,"if":expression,"then":[action],"else":[action]}. An action is {"act":name,...params}.
+Expressions are plain strings (no leading "="): "coins >= 8 and not flags.done", "dist(self,player) < 60", "self.health.hp / self.health.max". Text fields may embed {expressions}. Every variable must be declared in "vars"; unknown names and references are errors; unknown extra keys are warnings.
+A player-tagged map object is the spawn point of its scene; a prefab may list "carry":["health"] to keep those components when the player arrives from a scene that used a different player prefab.
+Sprites: {"w","h","palette","frames":["row/row/..."],"anims":{"walk":{"f":[0,1],"fps":8}}}. Maps: {"w","h","tileset","layers":[{"name","collide","rows":[2 base-36 chars per tile]}],"objects":[{"prefab","name","x","y"}]}.
+
+# core: Variables, control flow, timers, events, spawning, scenes and effects.
+trigger start — The scene has just started.
+trigger spawn — The entity has just appeared.
+trigger update — Every frame.
+trigger every: t:number — Repeatedly, every t seconds.
+trigger after: t:number — Once, t seconds after the scene or entity starts.
+trigger when — Fires when the "if" condition turns from false to true.
+trigger button: button:up|down|left|right|a|b|x|y|start|select player:int=0 cooldown:number=0 — A button was just pressed.
+trigger event: name:string — Another rule emitted this event.
+action set: path:path to:expr — Set a variable.
+action add: path:path by:expr=1 — Add to a number variable (negative to subtract).
+action if: test:expr then:actions else:actions — Run "then" when the test is true, otherwise "else".
+action wait: t:number then:actions — Run "then" after t seconds.
+action emit: name:string — Send an event to every "event" rule with this name.
+action spawn: prefab:prefab name at:self|other|world="self" x:expr y:expr dx:expr=0 dy:expr=0 ahead:expr=0 vx:expr vy:expr attach:bool=false — Create an entity from a prefab.
+action destroy: target:string="self" — Remove entities.
+action tag: target:string="self" add:string remove:string — Add or remove a tag.
+action goto: scene:scene name at:string — Switch to another scene. The player is carried over and placed at the named map object "at".
+action push: scene:scene name at:string — Open another scene on top of this one (a battle, a menu). "pop" returns.
+action pop:  — Close the top scene and return to the one below.
+action settile: layer:string tx:expr ty:expr tile:expr — Change one tile of the current map.
+action sound: id:sound name — Play a sound.
+action shake: t:number=0.3 — Shake the screen.
+action haptic: kind:light|medium|heavy|double|success|warning|error="light" — Vibrate the device.
+action log: text:text — Write to the developer log.
+# space2d: Positions, bodies, movement, collision against tiles and solid bodies, and contact/interact triggers.
+component pos: x:number=0 y:number=0
+component vel (needs pos): x:number=0 y:number=0
+component body (needs pos): w:number=12 h:number=12 ox:number=0 oy:number=0 blocked:bool=true solid:bool=false oneway:bool=false sensor:bool=false
+component follow (needs pos): target:string="player" ox:number=0 oy:number=0
+trigger touch: with:string — Two bodies start overlapping — or this one starts overlapping a tile that has the tag in "with". self = this entity, other = the one it touched (for a tile, other is at the middle of that tile).
+trigger untouch: with:string — Two bodies stop overlapping.
+trigger interact: button:up|down|left|right|a|b|x|y|start|select="a" range:number=24 — A player presses a button while standing near this entity.
+trigger entertile: tag:string — This entity steps onto a tile with this tag (checked at its centre).
+trigger leavetile: tag:string — This entity steps off the last tile with this tag.
+action move: target:string="self" x:expr y:expr — Set an entity's position.
+# topdown: Four/eight-direction player movement from the d-pad.
+component topdown (needs pos,vel): speed:number=70 player:int=0
+# platformer: Gravity, side-view player control, and moving platforms.
+component gravity (needs pos,vel): g:number=700 maxFall:number=420
+component platformer (needs pos,vel,body,gravity): speed:number=90 accel:number=900 jump:number=300 coyote:number=0.08 buffer:number=0.1 player:int=0
+component mover (needs pos): dx:number=0 dy:number=0 speed:number=30
+# sprite: Drawing state: which sprite, which animation. The platform draws it; the kernel only keeps time.
+component sprite: id:sprite name anim:string="idle" t:number=0 flip:bool=false layer:int=0 ox:number=0 oy:number=0 turn:bool=false sink:int=0 auto:bool=true
+action anim: target:string="self" name:string lock:number=0 — Play an animation from the start.
+action effect: sprite:sprite name anim:string at:self|other|world="self" x:expr y:expr dx:expr=0 dy:expr=0 layer:int=2 — Play a picture's animation once at a spot (splash, smoke, sparkle). Nothing to set up first.
+action setsprite: target:string="self" sprite:sprite name anim:string — Change a thing's picture (and optionally its animation).
+# combat: Hit points, damage with invulnerability and knockback, and short-lived entities. Contact damage, pickups, drops and doors are ordinary rules.
+component health: hp:number=1 max:number=1 invuln:number=0.6 t:number=0
+component lifetime: t:number=1
+trigger hit — This entity took damage. args.amount is how much; other is the source.
+trigger die — hp reached 0. Call keepAlive to survive (boss phases, respawns).
+action damage: target:string="other" amount:expr=1 knockback:expr=0 — Hurt entities that have health.
+action heal: target:string="self" amount:expr=1 — Restore hit points (never above max).
+action keepAlive:  — Inside a "die" rule: do not remove this entity.
+# ai: Simple movement brains. There is no state machine feature: change ai.mode from rules ("set self.ai.mode").
+component ai (needs pos,vel): mode:idle|patrol|chase|flee|wander="idle" speed:number=30 range:number=80 target:string="player" dir:number=-1 axis:x|y="x" t:number=0
+# dialogue: Conversations with typewriter text, conditional lines and choices. Pushes a "dialogue" mode; the world below is frozen.
+action say: name:text lines:custom then:actions — Start a conversation. Lines may have an "if" and "choices" [{text, if, then}]. A choice ends the conversation and runs its "then". "then" of the say runs when it ends.
