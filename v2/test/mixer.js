@@ -1,0 +1,83 @@
+/* The mixer: how game balance and device volume combine, what is remembered, and the validation of the new fields.  node v2/test/mixer.js */
+global.window = global; global.DC = {};
+require('../../js/expr.js'); require('../kernel.js');
+for (const f of ['space', 'platformer', 'combat', 'dialogue', 'farm', 'stealth']) require('../ext/' + f + '.js');
+require('../mixer.js'); require('../studio/core.js'); require('../studio/starters.js');
+const S = DC2.studio, X = DC2.mixer, ST = window.DC2_STARTERS;
+let pass = 0, fail = 0;
+const ok = (cond, name, extra) => { if (cond) pass++; else { fail++; console.log('  ✗', name, extra === undefined ? '' : JSON.stringify(extra).slice(0, 300)); } };
+const section = (t) => console.log('\n' + t);
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+const mem = () => { const d = {}; return { getItem: (k) => (k in d ? d[k] : null), setItem: (k, v) => { d[k] = String(v); }, d }; };
+const cartWith = (mix) => ({ meta: { mix } });
+
+section('1. combining the game\'s balance with the device volume');
+global.localStorage = mem();
+ok(JSON.stringify(X.levels({}, {})) === '{"master":1,"music":1,"sfx":1,"muted":false}', 'nothing set anywhere: everything at 1 (unchanged from before)');
+let l = X.levels(cartWith({ music: 0.4, sfx: 1.5 }), { master: 1, music: 1, sfx: 1 });
+ok(near(l.music, 0.4) && near(l.sfx, 1.5) && l.master === 1, 'the game can have quieter music and louder effects');
+l = X.levels(cartWith({ music: 0.4, sfx: 1.5 }), { master: 0.5, music: 0.5, sfx: 0.5, muted: false });
+ok(near(l.music, 0.2) && near(l.sfx, 0.75) && l.master === 0.5, 'the device volume scales on top, keeping the balance');
+ok(X.levels({}, { muted: true }).muted === true, 'mute carries through');
+l = X.levels(cartWith({ music: 99, sfx: -3 }), {});
+ok(l.music === 2 && l.sfx === 0, 'a game balance outside 0-2 is limited');
+l = X.levels(cartWith({ music: 'loud' }), { master: 7, music: -1, sfx: 'x' });
+ok(l.music === 0 && l.master === 1 && l.sfx === 1, 'nonsense falls back or is limited, never NaN', l);
+ok(X.levels(null, null).music === 1 && X.levels(undefined, {}).sfx === 1, 'a missing game is fine');
+
+section('2. the device volume is remembered');
+global.localStorage = mem();
+ok(JSON.stringify(X.device()) === JSON.stringify(X.DEFAULT), 'first time: defaults');
+X.setDevice({ music: 0.3, muted: true });
+ok(X.device().music === 0.3 && X.device().muted === true && X.device().sfx === 1, 'a change is saved and only that part changes');
+X.setDevice({ sfx: 0.5 });
+ok(X.device().music === 0.3 && X.device().sfx === 0.5 && X.device().muted === true, 'the next change keeps the earlier ones');
+ok(JSON.parse(localStorage.d['dc2.audio']).music === 0.3, 'it is stored under one key in the browser, not in any game');
+global.localStorage = mem(); localStorage.setItem('dc2.audio', '{not json');
+ok(JSON.stringify(X.device()) === JSON.stringify(X.DEFAULT), 'damaged saved data falls back to defaults');
+global.localStorage = mem(); localStorage.setItem('dc2.audio', JSON.stringify({ master: 9, music: 'x', muted: 'yes' }));
+ok(X.device().master === 1 && X.device().music === 1 && X.device().muted === false, 'bad values are cleaned (muted only if exactly true)');
+global.localStorage = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
+ok(JSON.stringify(X.device()) === JSON.stringify(X.DEFAULT) && X.setDevice({ music: 0.2 }).music === 0.2, 'browser storage blocked (private mode): still works for this visit');
+global.localStorage = mem();
+
+section('3. handing it to the audio engine');
+const calls = []; DC.Audio = { setLevels: (o) => calls.push(o) };
+X.setDevice({ master: 0.8, music: 0.5 }, cartWith({ sfx: 1.5, music: 0.5 }));
+ok(calls.length === 1 && near(calls[0].master, 0.8) && near(calls[0].music, 0.25) && near(calls[0].sfx, 1.5), 'the engine gets the combined levels', calls[0]);
+const cA = cartWith({ sfx: 2 }); X.apply(cA); X.setDevice({ sfx: 0.5 });
+ok(near(calls[calls.length - 1].sfx, 1), 'after a game has been applied, device changes keep using its balance');
+delete DC.Audio; ok(X.apply({}) === null, 'no audio engine: nothing happens, no error');
+
+section('4. the volume curve');
+ok(X.toLevel(0) === 0 && X.toLevel(100) === 1 && near(X.toLevel(50), 0.25), 'slider ends and middle: 0, 1, and 0.25 at half');
+let mono = true; for (let p = 1; p <= 100; p++) if (!(X.toLevel(p) > X.toLevel(p - 1))) mono = false;
+ok(mono, 'always increasing');
+ok(Math.abs(X.toLevel(X.toPos(0.14)) - 0.14) < 0.01 && Math.abs(X.toLevel(X.toPos(0.06)) - 0.06) < 0.01, 'typical sound levels (14%, 6%) round-trip to within 1%');
+ok(X.toPos(0.06) >= 20 && X.toPos(0.14) >= 35, 'and sit in the useful part of the slider (not crammed at the bottom)', [X.toPos(0.06), X.toPos(0.14)]);
+ok(X.toLevel('x') === 0 && X.toPos(-5) === 0 && X.toPos(9) === 100, 'nonsense is clamped');
+
+section('5. validation of the new fields');
+const base = () => S.clone(ST.topdown.cart);
+const errs = (c) => S.check(c).errors.map((e) => e.path + ': ' + e.msg);
+let c = base(); c.meta.mix = { music: 0.5, sfx: 1.5 };
+ok(errs(c).length === 0, 'a game balance is valid');
+c.meta.mix = { music: 3 }; ok(errs(c).some((e) => /^meta\.mix\.music/.test(e)), 'music above 200% is an error', errs(c));
+c.meta.mix = { sfx: -1 }; ok(errs(c).some((e) => /^meta\.mix\.sfx/.test(e)), 'below 0 is an error');
+c.meta.mix = { music: 'loud' }; ok(errs(c).some((e) => /^meta\.mix\.music/.test(e)), 'a word is an error');
+c = base(); c.music = { tune: { bpm: 120, vol: 0.5, tracks: [{ wave: 'square', v: 0.06, notes: 'C4 D4' }] } };
+ok(errs(c).length === 0, 'a song with volumes is valid', errs(c));
+c.music.tune.vol = 5; ok(errs(c).some((e) => /^music\.tune\.vol/.test(e)), 'song volume above 200% is an error');
+c.music.tune.vol = 1; c.music.tune.tracks[0].v = 2; ok(errs(c).some((e) => /^music\.tune\.tracks\[0\]\.v/.test(e)), 'a track above full volume is an error, at the right place', errs(c));
+c.music.tune.tracks[0].v = -0.1; ok(errs(c).some((e) => /tracks\[0\]\.v/.test(e)), 'negative is an error');
+c.music.tune.tracks = 'x'; ok(errs(c).some((e) => /music\.tune\.tracks/.test(e)), 'tracks must be a list');
+c = base(); c.music = 'loud'; ok(errs(c).some((e) => /^music:/.test(e)), 'music must be an object');
+c = base(); c.music = { a: 3 }; ok(errs(c).some((e) => /^music\.a/.test(e)), 'a song must be an object');
+c = base(); const sid = Object.keys(c.sounds)[0]; c.sounds[sid].v = 1.4;
+ok(errs(c).some((e) => new RegExp('^sounds\\.' + sid + '\\.v').test(e)), 'a sound above full volume is an error');
+c.sounds[sid].v = 0.95; ok(errs(c).length === 0 && S.check(c).warnings.some((w) => /nearly full volume/.test(w.msg)), 'nearly full volume is a warning that points at the mixer');
+c.sounds[sid].v = 0.3; ok(errs(c).length === 0 && !S.check(c).warnings.length, 'a normal one is clean');
+for (const [k, v] of Object.entries(ST)) ok(S.check(v.cart).errors.length === 0 && S.check(v.cart).warnings.length === 0, 'starter "' + k + '" still validates with no warnings');
+
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

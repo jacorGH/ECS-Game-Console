@@ -392,6 +392,7 @@
       title: 'string', author: { type: 'string', optional: true },
       width: { type: 'int', default: 256, min: 64, max: 640 }, height: { type: 'int', default: 224, min: 64, max: 480 },
       start: 'ref:scene', player: { type: 'ref:prefab', optional: true }, extensions: { type: 'list:string', default: [] },
+      mix: { type: 'object', optional: true, fields: { music: { type: 'number', default: 1, min: 0, max: 2 }, sfx: { type: 'number', default: 1, min: 0, max: 2 } } },
     } }, cart.meta, 'meta', cx);
 
     for (const k of Object.keys(cart.vars)) {
@@ -455,7 +456,25 @@
       }
     }
     /* sounds */
-    for (const [id, s] of Object.entries(cart.sounds || {})) if (!isObj(s)) cx.E(`sounds.${id}`, 'must be an object');
+    const level = (v, P, what, max) => {
+      if (v === undefined) return;
+      if (typeof v !== 'number' || !isFinite(v) || v < 0) cx.E(P, `${what} must be a number from 0 to ${max}`);
+      else if (v > max) cx.E(P, `${what} can be at most ${max} (this is ${v})`);
+    };
+    for (const [id, s] of Object.entries(cart.sounds || {})) {
+      if (!isObj(s)) { cx.E(`sounds.${id}`, 'must be an object'); continue; }
+      level(s.v, `sounds.${id}.v`, 'volume', 1);
+      if (s.v > 0.9 && s.v <= 1) cx.soft(`sounds.${id}.v`, 'this is nearly full volume and may crackle; use the Sound mixer\'s effects level to make every effect louder instead');
+    }
+    /* music: a song is { bpm, div, vol, tracks: [{ wave, v, notes }] } (or a single track written directly) */
+    if (cart.music !== undefined && !isObj(cart.music)) cx.E('music', 'must be an object of songs');
+    for (const [id, m] of Object.entries(isObj(cart.music) ? cart.music : {})) {
+      if (!isObj(m)) { cx.E(`music.${id}`, 'must be an object'); continue; }
+      level(m.vol, `music.${id}.vol`, 'song volume', 2);
+      level(m.v, `music.${id}.v`, 'volume', 1);
+      if (m.tracks !== undefined && !Array.isArray(m.tracks)) cx.E(`music.${id}.tracks`, 'must be a list of tracks');
+      (Array.isArray(m.tracks) ? m.tracks : []).forEach((t, i) => { if (!isObj(t)) cx.E(`music.${id}.tracks[${i}]`, 'must be an object'); else level(t.v, `music.${id}.tracks[${i}].v`, 'track volume', 1); });
+    }
 
     /* prefabs */
     for (const [name, p] of Object.entries(cart.prefabs || {})) {

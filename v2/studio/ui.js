@@ -51,7 +51,7 @@
     onDoc() { if (this.suppress) { this.light(); } else { this.full(); } },
     light() { this.updateBar(); if (this.art && this.art.st.id) this.art.redraw(); if (this.tab === 'map' && this.mv) this.mv.redraw(); this.scheduleCheck(); },
     full() { this.updateBar(); if (this.artRefresh) this.artRefresh(); this.refreshSheets(); this.renderTab(); this.scheduleCheck(); },
-    scheduleCheck() { clearTimeout(this._check); this._check = setTimeout(() => { this.report = S.check(this.doc.cart); this.updateBar(); F.paintIssues(document.body, this.report); this.sheets.forEach((s) => F.paintIssues(s.body, this.report)); if (this.tab === 'things') this.renderThings(true); }, 220); },
+    scheduleCheck() { clearTimeout(this._check); this._check = setTimeout(() => { if (!this.doc) return; /* left the project in the meantime */ this.report = S.check(this.doc.cart); this.updateBar(); F.paintIssues(document.body, this.report); this.sheets.forEach((s) => F.paintIssues(s.body, this.report)); if (this.tab === 'things') this.renderThings(true); }, 220); },
     updateBar() {
       const d = this.doc; if (!d) return;
       $('#btnUndo').disabled = !d.canUndo; $('#btnRedo').disabled = !d.canRedo;
@@ -120,11 +120,17 @@
         try { await this.lib.snapshot(id, res.cart, 'Before the Studio updated this project'); const c = S.clone(res.cart); S.upgrade(c); await this.lib.saveAll(id, c); res.cart = c; } catch (e) { console.error(e); }
       }
       this.meta = res.meta; this.doc = new S.Doc(res.cart); this.sprites = new DC2.SpriteCache(res.cart);
-      this.doc.on((ev) => { if (ev.touched.some((p) => ['sprites', 'palettes', 'tilesets'].includes(p[0]))) this.sprites.invalidate(); this.onDoc(ev); });
+      this.doc.on((ev) => {
+        if (ev.touched.some((p) => ['sprites', 'palettes', 'tilesets'].includes(p[0]))) this.sprites.invalidate();
+        /* any change to sounds, music or the balance (a slider, undo, the code editor, an import) reaches the speakers and a running game */
+        if (this.pushAudio && ev.touched.some((p) => p[0] === 'sounds' || p[0] === 'music' || (p[0] === 'meta' && (p.length === 1 || p[1] === 'mix')))) this.pushAudio();
+        this.onDoc(ev);
+      });
       this.saver = new S.Autosaver(this.lib, id, this.doc); this.saver.onStatus((s, e) => this.saveStatus(s, e)); this.saveStatus('saved');
       history.replaceState(null, '', '#p=' + id);
       $('#screenProjects').hidden = true; $('#screenEditor').hidden = false; $('#projName').textContent = res.meta.name;
       this.report = S.check(this.doc.cart); this.mv = null; this.st = null; if (this.code) { this.code.dirty = false; this.code.shown = null; }
+      if (DC2.mixer) DC2.mixer.apply(this.doc.cart);   // previews and Play use this game's balance
       this.setTab((opts && opts.tab) || 'map', true); this.updateBar();
     },
 
@@ -310,6 +316,9 @@
         el('div', { class: 'two' }, fld('width', 'Screen width', 'int', cart.meta.width, { default: 256, min: 64, max: 640 }), fld('height', 'Screen height', 'int', cart.meta.height, { default: 224, min: 64, max: 480 })),
         fld('start', 'Starts in level', 'ref', cart.meta.start, { to: 'scene', options: Object.keys(cart.scenes) }), fld('player', 'The player is', 'ref', cart.meta.player, { to: 'prefab', options: Object.keys(cart.prefabs), optional: true }));
       box.append(el('h3', null, 'Levels'), el('div', { class: 'lvls' }, ...Object.entries(cart.scenes).map(([sid, sc]) => el('div', { class: 'lvl-row' }, el('b', null, sid), el('span', { class: 'grow' }), btn('Edit map', () => { this.setTab('map'); this.mv.st.mapId = null; if (sc.map) this.mv.setMap(sc.map); this.renderMapUI(); }, 'sm'), btn('Settings', () => this.openLevel(sid), 'sm'), btn('Delete', async () => { if (Object.keys(cart.scenes).length < 2) return this.toast('A game needs at least one level.'); if (await this.confirm(`Delete level “${sid}”? Its map is deleted too. You can undo this.`, 'Delete', true)) { this.doc.transact('Delete level', () => { const mid = sc.map; this.doc.del(['scenes', sid]); if (mid && !Object.values(cart.scenes).some((s) => s.map === mid)) this.doc.del(['maps', mid]); if (cart.meta.start === sid) this.doc.set(['meta', 'start'], Object.keys(cart.scenes)[0]); }); this.mv && (this.mv.st.mapId = null); } }, 'sm danger')))), btn('＋ New level', () => this.newLevel(), 'add'));
+      const mixNow = cart.meta.mix || {}, sounds = Object.keys(cart.sounds || {}).length, songs = Object.keys(cart.music || {}).length;
+      box.append(el('h3', null, 'Sound'), el('div', { class: 'f-doc' }, `${songs} song${songs === 1 ? '' : 's'} and ${sounds} sound effect${sounds === 1 ? '' : 's'}. Music ${Math.round((mixNow.music == null ? 1 : mixNow.music) * 100)}%, effects ${Math.round((mixNow.sfx == null ? 1 : mixNow.sfx) * 100)}%.`),
+        el('div', { class: 'row-end left' }, btn('🎚 Open the sound mixer', () => this.openMixer(), 'add primary')));
       box.append(el('h3', null, 'Game values'), el('div', { class: 'f-doc' }, 'Numbers and flags the whole game shares, like coins collected. Rules can read and change them.'), F.valuesEditor(ctx, ['vars'], cart.vars, { reserved: (n) => ['self', 'other', 'player', 'time', 'frame', 'scene', 'args'].includes(n) || !!S.allReg().components[n] }));
       box.append(el('h3', null, 'Safety net'), el('div', { class: 'row-end left' }, btn('Save a restore point', async () => { await this.saver.flush(); await this.lib.snapshot(this.meta.id, this.doc.cart, 'Restore point'); this.toast('Restore point saved.'); }, 'sm'), btn('Restore points…', () => this.openSnapshots(), 'sm'), btn('Export .dcart', async () => { await this.saver.flush(); this.download(this.meta.name, S.toDcart(this.doc.cart)); }, 'sm')),
         el('div', { class: 'f-doc' }, 'Your work is saved automatically. Extensions this game uses: ' + ((cart.meta.extensions || []).join(', ') || 'none') + '.'));

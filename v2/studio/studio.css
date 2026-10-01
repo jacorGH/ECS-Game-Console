@@ -211,3 +211,18 @@ input:focus,select:focus,textarea:focus { outline:2px solid var(--accent2); outl
 .selbar { flex-wrap:nowrap; } .selbar .chip-btn { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
 .selbar .chip-btn canvas { image-rendering:pixelated; border-radius:2px; }
 .segchips { display:inline-flex; flex:none; } .segchips .chip-btn { border-radius:0; margin-left:-1px; } .segchips .chip-btn:first-child { border-radius:999px 0 0 999px; margin-left:0; } .segchips .chip-btn:last-child { border-radius:0 999px 999px 0; }
+
+/* ---- sound mixer */
+.mx-meters { display:grid; gap:6px; margin:0 -14px 6px; padding:8px 14px; position:sticky; top:-4px; z-index:3; background:var(--panel); border-bottom:1px solid var(--line); }   /* stays in view while you scroll down to the effects */
+.mx-mrow { display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:center; font-size:.8rem; color:var(--soft); }
+.mx-meter { height:10px; border-radius:6px; background:#0f0c1a; overflow:hidden; border:1px solid var(--line); }
+.mx-meter i { display:block; height:100%; width:0; background:linear-gradient(90deg,#3ddc97,#e8d84a 70%,#ff6b6b); transition:width .05s linear; }
+.mx-meter i.hot { filter:brightness(1.25); box-shadow:0 0 8px #ff6b6b; }
+.mx-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:10px; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+.mx-row.mx-sub { padding-left:14px; }
+.mx-l { display:flex; align-items:center; gap:10px; min-width:0; } .mx-l b { display:block; overflow:hidden; text-overflow:ellipsis; } .mx-l small { display:block; color:var(--soft); font-size:.76rem; }
+.mx-c { display:grid; grid-template-columns:1fr 3.4em; gap:8px; align-items:center; }
+.mx-val { text-align:right; font-variant-numeric:tabular-nums; font-size:.9rem; }
+.mx-range { width:100%; height:34px; margin:0; accent-color:var(--accent); touch-action:pan-y; background:transparent; }
+.mx-play { flex:none; } .mx-play.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.mx-tracks { margin:0 0 6px; } .mx-tracksbtn { margin:4px 0 2px; }

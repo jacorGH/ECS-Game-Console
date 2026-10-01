@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#14111f">
 <title>Data Console Studio</title>
-<link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/studio-32.png">
+<link rel="apple-touch-icon" href="icons/studio-180.png">
+<meta name="apple-mobile-web-app-title" content="DC Studio">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -102,7 +104,7 @@
           <div class="sys"><button class="pill" data-btn="select" type="button">Select</button><button class="pill" data-btn="start" type="button">Start</button></div>
           <div class="zone face-zone" id="faceZone"><div class="face" role="group" aria-label="Action buttons"><span class="fbtn fy" data-face="y">Y</span><span class="fbtn fx" data-face="x">X</span><span class="fbtn fb" data-face="b">B</span><span class="fbtn fa" data-face="a">A</span></div></div>
         </div>
-        <div class="playbar"><button id="btnRestart" class="btn" type="button">↻ Restart</button><span id="playStats" class="playstats"></span></div>
+        <div class="playbar"><button id="btnRestart" class="btn" type="button">↻ Restart</button><button id="btnMixer" class="btn" type="button" aria-label="Sound mixer">🎚 Sound</button><span id="playStats" class="playstats"></span></div>
       </section>
     </main>
 
@@ -154,6 +156,7 @@
 <script src="ext/farm.js"></script>
 <script src="ext/stealth.js"></script>
 <script src="render.js"></script>
+<script src="mixer.js"></script>
 <script src="runner.js"></script>
 <script src="studio/core.js"></script>
 <script src="studio/v1import.js"></script>
@@ -162,6 +165,7 @@
 <script src="studio/mapview.js"></script>
 <script src="studio/ui.js"></script>
 <script src="studio/art.js"></script>
+<script src="studio/mixer-ui.js"></script>
 <script src="studio/code.js"></script>
 </body>
 </html>

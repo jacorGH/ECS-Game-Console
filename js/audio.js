@@ -13,8 +13,12 @@
   }
 
   const A = (DC.Audio = {
-    ctx: null, out: null, muted: false, buffers: {}, noise: null,
+    ctx: null, out: null, sfx: null, mus: null, tap: null, muted: false, buffers: {}, noise: null,
     song: null, songName: null, timer: null, pending: null, volume: 0.5,
+    /* Mixing. Everything goes: sound effects -> sfx channel, music -> mus channel -> master (out) -> speakers.
+       master: overall level 0..1 (1 = the classic volume). mix.sfx / mix.music: each channel 0..2 (1 = as designed).
+       The defaults change nothing, so games that never touch these sound exactly as before. */
+    master: 1, mix: { sfx: 1, music: 1 },
 
     unlock() {
       try {
@@ -23,14 +27,39 @@
           if (!AC) return;
           this.ctx = new AC();
           this.out = this.ctx.createGain();
-          this.out.gain.value = this.muted ? 0 : this.volume;
           this.out.connect(this.ctx.destination);
+          this.sfx = this.ctx.createGain(); this.mus = this.ctx.createGain();
+          this.sfx.connect(this.out); this.mus.connect(this.out);
+          /* level meters: a tap on each channel that measures without changing the sound */
+          this.tap = {};
+          for (const [k, node] of [['sfx', this.sfx], ['music', this.mus], ['master', this.out]]) { const an = this.ctx.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = 0; node.connect(an); this.tap[k] = an; }
+          this.applyLevels();
         }
         if (this.ctx.state === 'suspended') this.ctx.resume();
         if (this.pending) { const p = this.pending; this.pending = null; this.playMusic(p[0], p[1]); }
       } catch (e) { /* audio unavailable */ }
     },
-    setMuted(m) { this.muted = m; if (this.out) this.out.gain.value = m ? 0 : this.volume; },
+    applyLevels() {
+      if (!this.out) return;
+      this.out.gain.value = this.muted ? 0 : this.volume * this.master;
+      this.sfx.gain.value = this.mix.sfx; this.mus.gain.value = this.mix.music;
+    },
+    setMuted(m) { this.muted = m; this.applyLevels(); },
+    /* set everything at once: { master 0..1, music 0..2, sfx 0..2, muted } (anything left out stays as it is) */
+    setLevels(l) {
+      const num = (x, lo, hi, d) => (typeof x === 'number' && isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d);
+      this.master = num(l.master, 0, 1, this.master);
+      this.mix = { sfx: num(l.sfx, 0, 2, this.mix.sfx), music: num(l.music, 0, 2, this.mix.music) };
+      if (typeof l.muted === 'boolean') this.muted = l.muted;
+      this.applyLevels();
+    },
+    /* loudest recent sample on a channel, 0..1: 'sfx', 'music' or 'master' (for meters) */
+    peak(which) {
+      const an = this.tap && this.tap[which]; if (!an) return 0;
+      const buf = this._pk || (this._pk = new Uint8Array(an.fftSize)); an.getByteTimeDomainData(buf);
+      let m = 0; for (let i = 0; i < buf.length; i++) { const d = Math.abs(buf[i] - 128); if (d > m) m = d; }
+      return m / 128;
+    },
     noiseBuffer() {
       if (this.noise) return this.noise;
       const c = this.ctx, len = c.sampleRate;
@@ -55,14 +84,14 @@
       if (this.buffers[name]) {
         const s = c.createBufferSource(); s.buffer = this.buffers[name];
         const g = c.createGain(); g.gain.value = def.v ?? 0.6;
-        s.connect(g).connect(this.out); s.start(t);
+        s.connect(g).connect(this.sfx || this.out); s.start(t);
         return;
       }
       const d = Math.max(0.01, +def.d || 0.15), v = def.v ?? 0.25;
       const g = c.createGain();
       g.gain.setValueAtTime(v, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      g.connect(this.out);
+      g.connect(this.sfx || this.out);
       const f = (Array.isArray(def.f) ? def.f : [def.f ?? 440]).map(Number).filter((x) => x > 0);
       if (!f.length) f.push(440);
       if (def.noise || def.wave === 'noise') {
@@ -81,8 +110,15 @@
       o.connect(g); o.start(t); o.stop(t + d + 0.02);
     },
 
+    /* volume of track i of a song: the track's own level times the song's "vol" (default 1) */
+    trackLevel(def, i) {
+      const t = Array.isArray(def.tracks) ? def.tracks[i] : def, own = t && t.v != null ? +t.v : 0.1, vol = def.vol == null ? 1 : +def.vol;
+      return (isFinite(own) ? own : 0.1) * (isFinite(vol) && vol >= 0 ? vol : 1);
+    },
+    /* the same song is already playing: don't restart it, just pick up any volume changes (live mixing) */
+    retune(def) { if (this.song) this.song.tracks.forEach((t, i) => { t.v = this.trackLevel(def, i); }); },
     playMusic(name, def) {
-      if (this.songName === name && this.song) return;
+      if (this.songName === name && this.song) { if (def) this.retune(def); return; }
       this.stopMusic();
       if (!def) return;
       if (!this.ctx) { this.pending = [name, def]; return; }
@@ -90,7 +126,7 @@
       const bpm = +def.bpm || 120, div = +def.div || 2;
       const step = 60 / bpm / div;
       const trackDefs = Array.isArray(def.tracks) ? def.tracks : [def];
-      const tracks = trackDefs.map((tr) => {
+      const tracks = trackDefs.map((tr, ti) => {
         const toks = String(tr.notes || '').split(/\s+/).filter((x) => x && x !== '|');
         const at = {};
         for (let i = 0; i < toks.length; i++) {
@@ -100,7 +136,7 @@
           const f = noteFreq(tk);
           if (f) at[i] = { f, len };
         }
-        return { wave: tr.wave || 'square', v: tr.v ?? 0.1, len: toks.length, at };
+        return { wave: tr.wave || 'square', v: this.trackLevel(def, ti), len: toks.length, at };
       });
       const total = Math.max(1, ...tracks.map((t) => t.len));
       this.song = { tracks, step, total, pos: 0, next: this.ctx.currentTime + 0.06, loop: def.loop !== false };
@@ -125,7 +161,7 @@
       g.gain.linearRampToValueAtTime(tr.v, t + 0.008);
       g.gain.setValueAtTime(tr.v, t + Math.max(0.01, d - 0.03));
       g.gain.linearRampToValueAtTime(0, t + d);
-      g.connect(this.out);
+      g.connect(this.mus || this.out);
       if (tr.wave === 'noise') {
         const s = c.createBufferSource(); s.buffer = this.noiseBuffer();
         const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = f;

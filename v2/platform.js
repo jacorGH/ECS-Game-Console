@@ -19,7 +19,16 @@
     $('#btnRestart').onclick = () => runner.load(runner.cart);
     $('#btnSave').onclick = () => { if (runner.world) { P.snap = runner.world.save(); $('#btnSave').textContent = 'Saved ✓'; setTimeout(() => ($('#btnSave').textContent = 'Save state'), 900); } };
     $('#btnLoad').onclick = () => { if (runner.world && P.snap) runner.world = DC2.restore(runner.cart, runner.reg, P.snap, { seed: 1 }); };
-    $('#btnMute').onclick = () => { const m = !DC.Audio.muted; DC.Audio.setMuted(m); $('#btnMute').textContent = m ? 'Sound off' : 'Sound on'; };
+    /* volume: the player's own levels for this device, on top of the game's balance. Remembered by the browser. */
+    const syncVol = () => {
+      const d = DC2.mixer.device();
+      for (const [id, k] of [['volMaster', 'master'], ['volMusic', 'music'], ['volSfx', 'sfx']]) { $('#' + id).value = Math.round(d[k] * 100); $('#' + id + 'Out').textContent = Math.round(d[k] * 100) + '%'; }
+      $('#btnMute').textContent = d.muted ? 'Sound off' : 'Sound on'; $('#btnMute').setAttribute('aria-pressed', String(!d.muted));
+    };
+    for (const [id, k] of [['volMaster', 'master'], ['volMusic', 'music'], ['volSfx', 'sfx']]) $('#' + id).oninput = () => { DC2.mixer.setDevice({ [k]: +$('#' + id).value / 100 }); syncVol(); };
+    $('#btnMute').onclick = () => { DC2.mixer.setDevice({ muted: !DC2.mixer.device().muted }); syncVol(); };
+    $('#btnVolume').onclick = () => { const p = $('#volPanel'); p.hidden = !p.hidden; $('#btnVolume').setAttribute('aria-expanded', String(!p.hidden)); };
+    syncVol();
     runner.load(window.DC2_CARTS['flag-of-gold']); runner.start();
   };
   Object.defineProperty(P, 'world', { get: () => P.runner && P.runner.world });

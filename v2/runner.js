@@ -17,12 +17,25 @@
       this.report = b.report; this.world = b.world; this.reg = b.reg;
       if (this.world && o.scene && o.scene !== cart.meta.start) { this.world.queue({ type: 'goto', scene: o.scene }); this.world.step([{}]); }
       if (this.world && o.at) { const p = this.world.player(); if (p && p.c.pos) { p.c.pos.x = o.at.x; p.c.pos.y = o.at.y; } }
+      if (DC2.mixer) DC2.mixer.apply(cart);   // the game's own balance + this device's volume
       if (this.opt.onLoad) this.opt.onLoad(this);
       this.draw();
     }
-    reload(cart) { if (!this.world) return this.load(cart); this.cart = cart; this.sprites.setCart(cart); return this.world.hotReload(cart); }
+    reload(cart) { if (!this.world) return this.load(cart); this.cart = cart; this.sprites.setCart(cart); if (DC2.mixer) DC2.mixer.apply(cart); return this.world.hotReload(cart); }
+    /* pick up sound and music edits (volumes, tunes) while the game runs, without restarting it */
+    setAudio(cart) {
+      if (!this.cart) return;
+      const c = (v) => JSON.parse(JSON.stringify(v));
+      this.cart.sounds = c(cart.sounds || {}); this.cart.music = c(cart.music || {}); this.cart.meta.mix = cart.meta.mix ? c(cart.meta.mix) : undefined;
+      if (DC2.mixer) DC2.mixer.apply(this.cart);
+      /* only if the song playing is the game's own (the mixer may be previewing a different one) */
+      if (DC.Audio && DC.Audio.retune && this.musicFor && DC.Audio.songName === this.musicFor && this.cart.music[this.musicFor]) DC.Audio.retune(this.cart.music[this.musicFor]);
+    }
+    /* after something else (the mixer's preview) used the music, let the game's own music come back */
+    syncMusic() { this.musicFor = '\u0000'; }
     start() { if (this.raf) return; this.last = performance.now(); const tick = (t) => { this.raf = requestAnimationFrame(tick); this.frame(t); }; this.raf = requestAnimationFrame(tick); }
-    stop() { cancelAnimationFrame(this.raf); this.raf = 0; }
+    /* stopping the game silences its music too (it used to keep playing in the other tabs) */
+    stop() { cancelAnimationFrame(this.raf); this.raf = 0; this.musicFor = null; if (DC.Audio && DC.Audio.stopMusic) DC.Audio.stopMusic(); }
     col(i) { return DC2.color(this.cart, i); }
     text(str, x, y, color, align) {
       const g = this.g; g.font = FONT; g.textBaseline = 'top'; g.textAlign = align || 'left';
