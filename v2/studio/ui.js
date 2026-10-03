@@ -43,14 +43,14 @@
     },
     ctx(prefabId, owner) {
       const self = this;
-      return { doc: this.doc, get reg() { return S.allReg(); }, sprites: this.sprites, owner: owner || 'entity', toast: (m) => this.toast(m), pick: (o) => this.pick(o),
+      return { doc: this.doc, get reg() { return S.allReg(); }, sprites: this.sprites, owner: owner || 'entity', toast: (m) => this.toast(m), pick: (o) => this.pick(o), sheet: (o) => this.openSheet(o), closeSheet: (s) => this.closeSheet(s),
         edit(fn) { self.suppress++; try { fn(); } finally { self.suppress--; } }, get sug() { return S.suggest(self.doc.cart, S.allReg(), prefabId); }, prefabId };
     },
 
     /* ----------------------------------------------------------- doc events, checking */
     onDoc() { if (this.suppress) { this.light(); } else { this.full(); } },
-    light() { this.updateBar(); if (this.art && this.art.st.id) this.art.redraw(); if (this.tab === 'map' && this.mv) this.mv.redraw(); this.scheduleCheck(); },
-    full() { this.updateBar(); if (this.artRefresh) this.artRefresh(); this.refreshSheets(); this.renderTab(); this.scheduleCheck(); },
+    light() { this.updateBar(); if (this.sndLight) this.sndLight(); if (this.art && this.art.st.id) this.art.redraw(); if (this.tab === 'map' && this.mv) this.mv.redraw(); this.scheduleCheck(); },
+    full() { this.updateBar(); if (this.sndRefresh) this.sndRefresh(); if (this.artRefresh) this.artRefresh(); this.refreshSheets(); this.renderTab(); this.scheduleCheck(); },
     scheduleCheck() { clearTimeout(this._check); this._check = setTimeout(() => { if (!this.doc) return; /* left the project in the meantime */ this.report = S.check(this.doc.cart); this.updateBar(); F.paintIssues(document.body, this.report); this.sheets.forEach((s) => F.paintIssues(s.body, this.report)); if (this.tab === 'things') this.renderThings(true); }, 220); },
     updateBar() {
       const d = this.doc; if (!d) return;
@@ -61,11 +61,39 @@
     saveStatus(s, err) { const e = $('#saveState'); e.textContent = { saved: 'Saved', saving: 'Saving…', dirty: 'Editing…', error: '⚠ Not saved' }[s] || s; e.className = 'save ' + s; e.title = err ? err.message : ''; },
 
     /* ---------------------------------------------------------------- projects */
+    /* Which build is running, and whether every file of it arrived. A phone can keep serving old copies of files, or an upload can
+       miss some; either way the tools they hold are then missing, and this says so instead of leaving you to wonder. */
+    buildInfo() {
+      const parts = [['studio/audio-core.js', !!S.snd], ['studio/sound-ui.js', typeof this.renderSound === 'function' && typeof this.openSfx === 'function'], ['studio/music-ui.js', typeof this.openSong === 'function'],
+        ['studio/mixer-ui.js', typeof this.openMixer === 'function'], ['studio/clip.js', !!S.clip], ['studio/art.js', typeof this.openSprite === 'function'], ['studio/code.js', typeof this.renderCode === 'function'],
+        ['mixer.js', !!DC2.mixer], ['runner.js', !!DC2.Runner]];
+      const missing = [...new Set([...(window.DC2_MISSING || []), ...parts.filter((x) => !x[1]).map((x) => x[0])])];
+      return { build: window.DC2_BUILD || 'unknown', parts, missing };
+    },
+    renderBuildInfo() {
+      const box = $('#buildInfo'); if (!box) return; const bi = this.buildInfo(); box.replaceChildren();
+      if (bi.missing.length) box.append(el('div', { class: 'buildwarn' }, el('b', null, 'Some Studio files did not load: '), bi.missing.join(', '), '. This usually means they were not uploaded, or your phone is showing an old copy. Upload the whole v2 folder again, then ', btn('reload with the latest files', () => this.freshReload(), 'link'), '.'));
+      box.append(el('div', { class: 'buildline' }, 'Studio build ' + bi.build + ' · ', btn('About', () => this.aboutStudio(), 'link')));
+    },
+    freshReload() { location.href = location.pathname + '?fresh=' + Date.now(); },
+    aboutStudio() {
+      const bi = this.buildInfo();
+      this.openSheet({ title: 'About this Studio', render: (body) => {
+        body.append(el('p', null, el('b', null, 'Build ' + bi.build)), el('div', { class: 'f-doc' }, 'Every update has a new build number. If it is not the newest one you uploaded, your phone is showing an old copy.'));
+        for (const [f, ok] of bi.parts) body.append(el('div', { class: 'lvl-row' }, el('b', null, (ok && !bi.missing.includes(f) ? '✓ ' : '✗ ') + f)));
+        body.append(el('div', { class: 'row-end' }, btn('Reload with the latest files', () => this.freshReload(), 'primary')));
+      } });
+    },
+    /* a tab whose code did not load: say so, instead of an error */
+    missingTab(file, what) {
+      const box = $('#soundGrid'); if (!box) return; box.replaceChildren(el('div', { class: 'empty big' }, el('b', null, `The ${what} did not load.`), el('div', null, `The file ${file} is missing or your phone is showing an old copy. Upload the whole v2 folder again, then close this page completely and open it again.`), btn('Reload with the latest files', () => this.freshReload(), 'primary')));
+    },
     async showProjects() {
       await this.closeProject(); $('#screenEditor').hidden = true; $('#screenProjects').hidden = false; history.replaceState(null, '', location.pathname);
       const list = $('#projList'); list.replaceChildren(el('div', { class: 'empty' }, 'Loading…'));
       const ps = await this.lib.list(); list.replaceChildren();
       if (!ps.length) list.append(el('div', { class: 'empty big' }, 'No projects yet. Make your first game with the button below.'));
+      this.renderBuildInfo();
       for (const p of ps) list.append(el('div', { class: 'proj', 'data-id': p.id }, el('button', { class: 'proj-main', onclick: () => this.openProject(p.id) }, el('b', null, p.name), el('span', null, 'edited ' + ago(p.updated))), btn('⋯', () => this.projectMenu(p), 'sq', 'more')));
     },
     projectMenu(p) {
@@ -111,7 +139,7 @@
     },
     async closeProject() {
       if (this.saver) { try { await this.saver.flush(); } catch (e) { /* reported by status */ } this.saver.stop(); this.saver = null; }
-      if (this.runner) this.runner.stop(); this.playing = false; this.closeAllSheets(); $('#artEditor').hidden = true; if (this.art) this.art.st.id = null; this.doc = null; this.mv = null;
+      if (this.runner) this.runner.stop(); this.playing = false; this.playSession = null; this.closeAllSheets(); if (this.closeSoundEditors) this.closeSoundEditors(); $('#artEditor').hidden = true; if (this.art) this.art.st.id = null; this.doc = null; this.mv = null;
     },
     async openProject(id, opts) {
       await this.closeProject();
@@ -124,6 +152,7 @@
         if (ev.touched.some((p) => ['sprites', 'palettes', 'tilesets'].includes(p[0]))) this.sprites.invalidate();
         /* any change to sounds, music or the balance (a slider, undo, the code editor, an import) reaches the speakers and a running game */
         if (this.pushAudio && ev.touched.some((p) => p[0] === 'sounds' || p[0] === 'music' || (p[0] === 'meta' && (p.length === 1 || p[1] === 'mix')))) this.pushAudio();
+        if (this.tab === 'play' && this.playing) this.scheduleHot();   // edits made from the Play screen (undo, a sheet) reach the running game
         this.onDoc(ev);
       });
       this.saver = new S.Autosaver(this.lib, id, this.doc); this.saver.onStatus((s, e) => this.saveStatus(s, e)); this.saveStatus('saved');
@@ -138,13 +167,14 @@
     setTab(t, force) {
       if (!force && t === this.tab && !$('#viewPlay').hidden === (t === 'play')) { /* re-select: still redraw */ }
       if (this.tab === 'code' && t !== 'code' && !force && this.leaveCode && !this.leaveCode()) return;   // unapplied code: apply it, or stay if it's broken
-      if (this.tab === 'play' && t !== 'play') { if (this.runner) this.runner.stop(); this.playing = false; }   // Play always starts fresh from the current project
+      if (this.tab === 'play' && t !== 'play') { clearTimeout(this._hot); if (this.runner) this.runner.stop(); this.playing = false; }   // pause: the game itself is kept, and picks up your edits when you come back
+      if (this.tab === 'sound' && t !== 'sound' && this.stopSoundPreview) this.stopSoundPreview();   // a song started from the list stops when you leave
       this.tab = t;
       document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
-      for (const v of ['map', 'things', 'art', 'code', 'game', 'play']) $('#view' + v[0].toUpperCase() + v.slice(1)).hidden = v !== t;
+      for (const v of ['map', 'things', 'art', 'sound', 'code', 'game', 'play']) $('#view' + v[0].toUpperCase() + v.slice(1)).hidden = v !== t;
       this.renderTab();
     },
-    renderTab() { ({ art: () => this.renderArt(), code: () => this.renderCode(), map: () => this.renderMap(), things: () => this.renderThings(), game: () => this.renderGame(), play: () => { if (!this.playing) this.startPlay(); } })[this.tab](); },
+    renderTab() { ({ art: () => this.renderArt(), sound: () => (this.renderSound ? this.renderSound() : this.missingTab('studio/sound-ui.js', 'sound tools')), code: () => this.renderCode(), map: () => this.renderMap(), things: () => this.renderThings(), game: () => this.renderGame(), play: () => this.enterPlay() })[this.tab](); },
 
     /* --------------------------------------------------------------------- map */
     currentMapId() { const st = this.mv && this.mv.st; return (st && st.mapId && this.doc.cart.maps[st.mapId]) ? st.mapId : Object.keys(this.doc.cart.maps)[0]; },
@@ -270,9 +300,18 @@
         const sc = this.doc.cart.scenes[sid], m = sc.map && this.doc.cart.maps[sc.map], ctx = this.ctx(null, 'scene'), cx = { cart: this.doc.cart, reg: S.allReg() };
         body.append(el('div', { class: 'row-end' }, btn('Rename', async () => { const n = await this.askText('Rename level', sid, 'Rename'); if (n) { try { S.renameAsset(this.doc, 'scene', sid, S.slug(n)); this.closeAllSheets(); } catch (e) { this.toast(e.message); } } }, 'sm')));
         if (m) body.append(el('div', { class: 'section-l' }, 'Size (in tiles)'), el('div', { class: 'two' }, this.sizeField('Width', m.w, (v) => S.map.resize(this.doc, sc.map, v, m.h)), this.sizeField('Height', m.h, (v) => S.map.resize(this.doc, sc.map, m.w, v))));
+        body.append(el('div', { class: 'section-l' }, 'Music'), this.musicPicker(sid));
         body.append(el('div', { class: 'section-l' }, 'On-screen text'), F.field(ctx, S.describe(hudSpec, 'hud', cx), sc.hud || [], ['scenes', sid, 'hud'], { label: 'Text on the screen', bare: false }));
         body.append(el('div', { class: 'section-l' }, 'Rules for this level'), F.rulesEditor(ctx, sc.rules, ['scenes', sid, 'rules'], 'scene'));
       } });
+    },
+    /* which song a level plays: pick from your songs (make them in the Sound tab) */
+    musicPicker(sid) {
+      const cart = this.doc.cart, cur = cart.scenes[sid].music, songs = Object.keys(cart.music || {}), has = cur && songs.includes(cur);
+      const sel = el('select', { 'data-level-music': sid }, el('option', { value: '' }, songs.length ? '(no music)' : '(no songs yet)'), ...songs.map((k) => el('option', { value: k, selected: k === cur }, k)));
+      if (cur && !has) sel.append(el('option', { value: cur, selected: true }, cur + ' (missing!)'));
+      sel.onchange = () => { if (sel.value === '') this.doc.del(['scenes', sid, 'music'], 'Level music'); else this.doc.set(['scenes', sid, 'music'], sel.value, { label: 'Level music' }); };
+      return el('div', { class: 'f' }, el('div', { class: 'exprrow' }, sel, has ? btn('Edit song', () => { this.closeAllSheets(); this.openSong(cur); }, 'sm') : btn('＋ New song', () => { this.closeAllSheets(); this.setTab('sound'); this.newSong(); }, 'sm')));
     },
     sizeField(label, val, apply) { const inp = el('input', { type: 'number', value: val, min: 4, max: 200 }), b = btn('Set', () => { const v = Math.round(Number(inp.value)); if (v >= 4 && v <= 200) apply(v); else this.toast('Between 4 and 200 tiles.'); }, 'sm'); return el('div', { class: 'f' }, el('div', { class: 'f-label' }, label), el('div', { class: 'exprrow' }, inp, b)); },
 
@@ -318,7 +357,7 @@
       box.append(el('h3', null, 'Levels'), el('div', { class: 'lvls' }, ...Object.entries(cart.scenes).map(([sid, sc]) => el('div', { class: 'lvl-row' }, el('b', null, sid), el('span', { class: 'grow' }), btn('Edit map', () => { this.setTab('map'); this.mv.st.mapId = null; if (sc.map) this.mv.setMap(sc.map); this.renderMapUI(); }, 'sm'), btn('Settings', () => this.openLevel(sid), 'sm'), btn('Delete', async () => { if (Object.keys(cart.scenes).length < 2) return this.toast('A game needs at least one level.'); if (await this.confirm(`Delete level “${sid}”? Its map is deleted too. You can undo this.`, 'Delete', true)) { this.doc.transact('Delete level', () => { const mid = sc.map; this.doc.del(['scenes', sid]); if (mid && !Object.values(cart.scenes).some((s) => s.map === mid)) this.doc.del(['maps', mid]); if (cart.meta.start === sid) this.doc.set(['meta', 'start'], Object.keys(cart.scenes)[0]); }); this.mv && (this.mv.st.mapId = null); } }, 'sm danger')))), btn('＋ New level', () => this.newLevel(), 'add'));
       const mixNow = cart.meta.mix || {}, sounds = Object.keys(cart.sounds || {}).length, songs = Object.keys(cart.music || {}).length;
       box.append(el('h3', null, 'Sound'), el('div', { class: 'f-doc' }, `${songs} song${songs === 1 ? '' : 's'} and ${sounds} sound effect${sounds === 1 ? '' : 's'}. Music ${Math.round((mixNow.music == null ? 1 : mixNow.music) * 100)}%, effects ${Math.round((mixNow.sfx == null ? 1 : mixNow.sfx) * 100)}%.`),
-        el('div', { class: 'row-end left' }, btn('🎚 Open the sound mixer', () => this.openMixer(), 'add primary')));
+        el('div', { class: 'row-end left' }, btn('🎵 Make sounds & music', () => this.setTab('sound'), 'add primary'), btn('🎚 Sound mixer', () => this.openMixer(), 'add')));
       box.append(el('h3', null, 'Game values'), el('div', { class: 'f-doc' }, 'Numbers and flags the whole game shares, like coins collected. Rules can read and change them.'), F.valuesEditor(ctx, ['vars'], cart.vars, { reserved: (n) => ['self', 'other', 'player', 'time', 'frame', 'scene', 'args'].includes(n) || !!S.allReg().components[n] }));
       box.append(el('h3', null, 'Safety net'), el('div', { class: 'row-end left' }, btn('Save a restore point', async () => { await this.saver.flush(); await this.lib.snapshot(this.meta.id, this.doc.cart, 'Restore point'); this.toast('Restore point saved.'); }, 'sm'), btn('Restore points…', () => this.openSnapshots(), 'sm'), btn('Export .dcart', async () => { await this.saver.flush(); this.download(this.meta.name, S.toDcart(this.doc.cart)); }, 'sm')),
         el('div', { class: 'f-doc' }, 'Your work is saved automatically. Extensions this game uses: ' + ((cart.meta.extensions || []).join(', ') || 'none') + '.'));
@@ -334,7 +373,26 @@
       const cart = S.clone(this.doc.cart);
       if (!this.runner) { this.runner = new DC2.Runner($('#playCanvas'), { onLoad: () => this.fitPlay(), onStats: (r) => { $('#playStats').textContent = r.world.errors.length ? '⚠ ' + r.world.errors[0].slice(0, 60) : ''; } }); }
       this.runner.load(cart, o); this.runner.start(); this.playing = true; this.fitPlay();
+      this.playSession = this.runner.world ? this.meta.id : null;
       const rep = this.runner.report; $('#playProblems').hidden = !rep || rep.ok; $('#playProblems').textContent = rep && !rep.ok ? 'This game has problems and cannot run yet. Tap ⚠ at the top to see them.' : '';
+    },
+    /* Entering Play: carry on with the game that was running if there is one for this project (your edits are applied to it),
+       otherwise boot a new one. Restart, "Play here" and "Apply & restart" are the ways to start over. */
+    enterPlay() {
+      if (this.playing) return;
+      if (this.runner && this.runner.world && this.playSession === this.meta.id) { this.runner.start(); this.playing = true; this.fitPlay(); this.applyLive(true); return; }
+      this.startPlay();
+    },
+    scheduleHot() { clearTimeout(this._hot); this._hot = setTimeout(() => this.applyLive(false), 180); },
+    /* Put the project's current data into the running game, keeping what the game is doing. If the project has an error
+       right now the game keeps running the last version that worked, and says so. */
+    applyLive(quiet) {
+      if (!this.doc || !this.runner || !this.runner.world || !this.playing) return;
+      const warn = $('#playProblems'), rep = S.check(this.doc.cart);
+      if (rep.errors.length) { warn.hidden = false; warn.textContent = `Your latest change has ${rep.errors.length === 1 ? 'a problem' : rep.errors.length + ' problems'}, so the game is still running the last version that worked. Tap ⚠ at the top to see ${rep.errors.length === 1 ? 'it' : 'them'}.`; return; }
+      warn.hidden = true; warn.textContent = '';
+      try { const notes = this.runner.reload(S.clone(this.doc.cart)); if (notes && notes.length && !quiet) this.toast('Updated the running game: ' + notes.join('; ') + '.'); else if (notes && notes.length) this.toast('Picked up your changes: ' + notes.join('; ') + '.'); }
+      catch (e) { this.toast('Could not apply that change to the running game (' + e.message + '). Tap Restart to start over.'); }
     },
     playHere(p) { this.setTab('play', true); const sid = this.sceneOfMap(this.mv.st.mapId); this.playing = false; this.startPlay({ scene: sid, at: p }); },
     fitPlay() { const cv = $('#playCanvas'), w = $('#playWrap'); if (!w.clientWidth) return; let s = Math.min(w.clientWidth / cv.width, w.clientHeight / cv.height); const si = Math.floor(s); if (si >= 1 && si / s > 0.82) s = si; cv.style.width = Math.floor(cv.width * s) + 'px'; cv.style.height = Math.floor(cv.height * s) + 'px'; },
@@ -348,6 +406,7 @@
         btn('Rename project', async () => { this.closeSheet(s); const n = await this.askText('Rename project', this.meta.name, 'Rename'); if (n) { await this.lib.rename(this.meta.id, n); this.meta.name = n; $('#projName').textContent = n; } }, 'menu-item'),
         btn('Save a restore point', async () => { this.closeSheet(s); await this.saver.flush(); await this.lib.snapshot(this.meta.id, this.doc.cart, 'Restore point'); this.toast('Restore point saved.'); }, 'menu-item'),
         btn('Restore points…', () => { this.closeSheet(s); this.openSnapshots(); }, 'menu-item'),
+        btn('About this Studio', () => { this.closeSheet(s); this.aboutStudio(); }, 'menu-item'),
         btn('Export as .dcart file', async () => { this.closeSheet(s); await this.saver.flush(); this.download(this.meta.name, S.toDcart(this.doc.cart)); }, 'menu-item'),
         btn('All projects', () => { this.closeSheet(s); this.showProjects(); }, 'menu-item'))) });
     },

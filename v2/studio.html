@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="studio/studio.css">
+<link rel="stylesheet" href="studio/studio.css?v=2026-10-03.1">
 </head>
 <body>
 <div id="studio">
@@ -19,7 +19,7 @@
   <!-- projects -->
   <div id="screenProjects" class="screen">
     <header class="bar"><h1>Data Console <span>Studio</span></h1></header>
-    <main class="scroll"><div id="projList" class="projlist"></div></main>
+    <main class="scroll"><div id="projList" class="projlist"></div><div id="buildInfo" class="buildinfo"></div></main>
     <footer class="foot">
       <button id="btnNew" class="btn primary big" type="button">＋ New game</button>
       <label class="btn big" for="fileIn">Open a game file</label><input id="fileIn" type="file" accept=".dcart,.json,application/json" hidden>
@@ -62,6 +62,11 @@
       <section id="viewArt" class="view scroll" hidden>
         <div class="viewhead"><h2>Art</h2><div class="hbtns"><label class="btn" for="pngIn">Import PNG</label><input id="pngIn" type="file" accept="image/png,image/gif,image/jpeg,image/webp" hidden><button id="btnNewSprite" class="btn primary" type="button">＋ New sprite</button></div></div>
         <div id="spriteGrid" class="thinggrid"></div>
+      </section>
+
+      <section id="viewSound" class="view scroll" hidden>
+        <div class="viewhead"><h2>Sound</h2><div class="hbtns"><button id="btnSoundMixer" class="btn" type="button">🎚 Mixer</button></div></div>
+        <div id="soundGrid" class="thinggrid"></div>
       </section>
 
       <section id="viewCode" class="view v1code" hidden>
@@ -127,10 +132,46 @@
       <div id="artFrames" class="palette frames"></div>
     </div>
 
+    <div id="sfxEditor" class="artedit sndedit" hidden>
+      <header class="bar">
+        <button id="sfxBack" class="btn sq" type="button" aria-label="Back to sound">‹</button>
+        <span id="sfxName" class="pname"></span>
+        <button id="sfxPlay" class="btn primary" type="button" aria-label="Play this sound">▶ Play</button>
+        <button id="sfxUndo" class="btn sq sh-undo" type="button" aria-label="Undo" disabled>↶</button>
+        <button id="sfxRedo" class="btn sq sh-redo" type="button" aria-label="Redo" disabled>↷</button>
+        <button id="sfxMore" class="btn sq" type="button" aria-label="More">⋯</button>
+      </header>
+      <div class="sfx-body">
+        <div class="f-label">Start from a kind of sound <small>tap again for another one</small></div>
+        <div id="sfxKinds" class="sfx-kinds"></div>
+        <div class="sfx-graph"><canvas id="sfxCanvas" aria-label="Pitch graph: drag up and down to change the pitch"></canvas></div>
+        <div id="sfxControls"></div>
+      </div>
+    </div>
+
+    <div id="musicEditor" class="artedit sndedit" hidden>
+      <header class="bar">
+        <button id="musBack" class="btn sq" type="button" aria-label="Back to sound">‹</button>
+        <span id="musName" class="pname"></span>
+        <button id="musPlay" class="btn primary" type="button" aria-label="Play the song">▶ Play</button>
+        <button id="musUndo" class="btn sq sh-undo" type="button" aria-label="Undo" disabled>↶</button>
+        <button id="musRedo" class="btn sq sh-redo" type="button" aria-label="Redo" disabled>↷</button>
+        <button id="musMore" class="btn sq" type="button" aria-label="More">⋯</button>
+      </header>
+      <div id="musSettings" class="mus-set"></div>
+      <div id="musTracks" class="mus-set mus-tracks"></div>
+      <div id="musStrip" class="mus-strip"></div>
+      <div class="rollwrap"><canvas id="rollCanvas" aria-label="Piano roll: tap to add a note, tap a note to remove it, drag to make it longer"></canvas>
+        <div class="zoom"><button id="rollZoomIn" class="btn sq" type="button" aria-label="Wider steps">＋</button><button id="rollZoomOut" class="btn sq" type="button" aria-label="Narrower steps">－</button><button id="rollFit" class="btn sq" type="button" aria-label="Show the whole song">⤢</button></div>
+      </div>
+      <div id="musTools" class="tools"></div>
+    </div>
+
     <nav id="tabs" class="tabs">
       <button type="button" data-tab="map" class="on"><span>🗺️</span>Map</button>
       <button type="button" data-tab="things"><span>🧩</span>Things</button>
       <button type="button" data-tab="art"><span>🎨</span>Art</button>
+      <button type="button" data-tab="sound"><span>🎵</span>Sound</button>
       <button type="button" data-tab="code"><span>📝</span>Code</button>
       <button type="button" data-tab="game"><span>⚙️</span>Game</button>
       <button type="button" data-tab="play"><span>▶️</span>Play</button>
@@ -141,31 +182,37 @@
   <div id="toast" role="status" aria-live="polite"></div>
 </div>
 
-<script src="nozoom.js"></script>
-<script src="../js/core.js"></script>
-<script src="../js/expr.js"></script>
-<script src="../js/audio.js"></script>
-<script src="../js/sensors.js"></script>
-<script src="../js/input.js"></script>
-<script src="../js/codeeditor.js"></script>
-<script src="kernel.js"></script>
-<script src="ext/space.js"></script>
-<script src="ext/platformer.js"></script>
-<script src="ext/combat.js"></script>
-<script src="ext/dialogue.js"></script>
-<script src="ext/farm.js"></script>
-<script src="ext/stealth.js"></script>
-<script src="render.js"></script>
-<script src="mixer.js"></script>
-<script src="runner.js"></script>
-<script src="studio/core.js"></script>
-<script src="studio/v1import.js"></script>
-<script src="studio/starters.js"></script>
-<script src="studio/forms.js"></script>
-<script src="studio/mapview.js"></script>
-<script src="studio/ui.js"></script>
-<script src="studio/art.js"></script>
-<script src="studio/mixer-ui.js"></script>
-<script src="studio/code.js"></script>
+<script>window.DC2_MISSING = []; window.__miss = function (el) { DC2_MISSING.push(String(el.getAttribute("src")).split("?")[0]); };</script>
+<script src="studio/version.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="nozoom.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="../js/core.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="../js/expr.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="../js/audio.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="../js/sensors.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="../js/input.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="../js/codeeditor.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="kernel.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="ext/space.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="ext/platformer.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="ext/combat.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="ext/dialogue.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="ext/farm.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="ext/stealth.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="render.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="mixer.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="runner.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/core.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/clip.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/v1import.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/starters.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/forms.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/mapview.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/ui.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/art.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/mixer-ui.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/audio-core.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/sound-ui.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/music-ui.js?v=2026-10-03.1" onerror="__miss(this)"></script>
+<script src="studio/code.js?v=2026-10-03.1" onerror="__miss(this)"></script>
 </body>
 </html>

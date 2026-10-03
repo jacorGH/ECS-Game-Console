@@ -90,5 +90,52 @@ B.playMusic('early', { bpm: 100, tracks: [{ wave: 'square', v: 0.1, notes: 'C4 D
 ok(B.songName === 'early', 'music asked for early plays once unlocked');
 B.stopMusic();
 
+section('6. editing a song while it plays');
+A.stopMusic(); A.ctx.currentTime = 0;
+const tune = (notes, extra) => Object.assign({ bpm: 120, div: 2, tracks: [{ wave: 'square', v: 0.1, notes }] }, extra || {});
+ok(A.updateSong(tune('C4 D4')) === false, 'nothing playing: nothing to update');
+A.playMusic('ed', tune('C4 . E4 . G4 . C5 .'));
+const T0 = A.timer; A.ctx.currentTime = 0.6; A.tick();
+const posBefore = A.song.pos;
+ok(A.updateSong(tune('C4 . E4 . G4 . C5 . A4 - - -', { bpm: 240 })) === true, 'updateSong accepts an edited song');
+ok(A.timer === T0 && A.song.pos === posBefore, 'it does not restart: same timer, same place in the song');
+ok(A.song.total === 12 && A.song.tracks[0].at[8] && A.song.tracks[0].at[8].len === 4, 'new notes are in (a held note at step 8, 4 steps long)', A.song.tracks[0].at);
+ok(Math.abs(A.song.step - 0.125) < 1e-9, 'the new tempo applies (240 bpm = 0.125 s a step)');
+A.song.pos = 10; A.updateSong(tune('C4 D4 E4 F4'));
+ok(A.song.total === 4 && A.song.pos === 2, 'a shorter song wraps the position instead of running off the end', [A.song.total, A.song.pos]);
+A.updateSong(tune('C4 D4', { loop: false })); ok(A.song.loop === false, 'the loop setting changes live');
+A.stopMusic();
+
+section('7. starting somewhere, and where we are');
+A.ctx.currentTime = 0;
+A.playMusic('s', tune('C4 D4 E4 F4 G4 A4 B4 C5'), 5); ok(A.song.pos === 5, 'start at step 5');
+A.stopMusic(); A.playMusic('s', tune('C4 D4 E4 F4'), 9); ok(A.song.pos === 1, 'a start past the end wraps (9 of 4 = 1)');
+A.stopMusic(); A.playMusic('s', tune('C4 D4 E4 F4'), -1); ok(A.song.pos === 3, 'a negative start counts from the end');
+A.stopMusic(); A.playMusic('s', tune('C4 D4 E4 F4'), 'x'); ok(A.song.pos === 0, 'nonsense starts at the beginning');
+A.stopMusic(); ok(A.songPos() === -1, 'nothing playing: -1');
+A.ctx.currentTime = 0; A.playMusic('p', tune('C4 D4 E4 F4 G4 A4 B4 C5'));
+ok(A.songPos() === 0, 'just started, not yet audible: the first step (not the end of the loop)', A.songPos());
+A.ctx.currentTime = 1.06; A.tick();
+ok(Math.abs(A.songPos() - 4) < 1e-9, 'one second in at 120 bpm / 2 steps per beat: step 4', A.songPos());
+A.ctx.currentTime = 1.185; A.tick();
+ok(Math.abs(A.songPos() - 4.5) < 1e-9, 'and it moves smoothly between steps (4.5)', A.songPos());
+A.ctx.currentTime = 2.3; A.tick();
+const wrapped = A.songPos(); ok(wrapped >= 0 && wrapped < 8, 'it wraps with the loop and stays in range', wrapped);
+A.stopMusic(); A.playMusic('q', tune('C4 D4 E4 F4 G4 A4 B4 C5'), 6); ok(A.songPos() === 6, 'starting at step 6 reports 6 until audible');
+A.stopMusic();
+
+section('8. hearing a single note');
+nodes = [];
+A.blip('square', 440, 0.2, 0.1);
+const bg = nodes.filter((n) => n.kind === 'gain').find((n) => n.to.includes(A.mus));
+ok(bg && nodes.some((n) => n.kind === 'osc'), 'a note is an oscillator on the music channel');
+nodes = []; A.blip('noise', 3000, 0.1, 0.1);
+ok(nodes.some((n) => n.kind === 'filter') && nodes.some((n) => n.kind === 'gain' && n.to.includes(A.mus)), 'a noise note goes through a filter on the music channel');
+nodes = []; A.blip('square', 0, 0.2); A.blip('square', -5, 0.2); A.blip('square', NaN, 0.2);
+ok(nodes.length === 0, 'a frequency that is not positive makes no sound');
+A.setMuted(true); nodes = []; A.blip('square', 440, 0.2); ok(nodes.length === 0, 'muted: no sound');
+A.setMuted(false);
+nodes = []; A.blip('banjo', 440, 0.2, 0.1); ok(nodes.some((n) => n.kind === 'osc'), 'an unknown wave falls back to square instead of failing');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

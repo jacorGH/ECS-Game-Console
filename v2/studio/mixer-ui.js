@@ -29,6 +29,7 @@
       DC2.mixer.apply(this.doc.cart);
       if (this.runner && this.playing) this.runner.setAudio(this.doc.cart);
       if (this.mixPreview && DC.Audio && this.doc.cart.music[this.mixPreview]) DC.Audio.playMusic(this.mixPreview, this.doc.cart.music[this.mixPreview]);   // same song: just picks up the new levels
+      if (this.songEd && this.songEd.playing) this.songEd.syncAudio();   // a song being edited in the piano roll
     },
     stopPreview() { if (this.mixPreview && DC.Audio) DC.Audio.stopMusic(); this.mixPreview = null; },
     openMixer() {
@@ -66,7 +67,7 @@
               if (this.mixPreview === id) this.stopPreview(); else { this.stopPreview(); if (this.runner && this.playing) DC.Audio.stopMusic(); this.mixPreview = id; DC.Audio.unlock(); DC.Audio.playMusic(id, this.doc.cart.music[id]); }
               this.renderSheet(sheet);
             }, 'sq mx-play' + (on ? ' on' : ''), on ? 'stop' : 'play this song');
-            body.append(row({ head: el('div', { class: 'mx-l' }, play, el('div', null, el('b', null, id), el('small', null, `${m.bpm || 120} bpm · ${tracks.length || 1} track${tracks.length === 1 ? '' : 's'}`))), label: id + ' volume', key: 'song-' + id,
+            body.append(row({ head: el('div', { class: 'mx-l' }, play, el('div', null, el('b', null, id), el('small', null, `${m.bpm || 120} bpm · ${tracks.length || 1} track${tracks.length === 1 ? '' : 's'}`)), btn('✎', () => { this.closeSheet(sheet); this.openSong(id); }, 'sq mx-edit', 'edit ' + id)), label: id + ' volume', key: 'song-' + id,
               min: 0, max: 200, value: Math.round((m.vol == null ? 1 : m.vol) * 100), fmt: (v) => v + '%', onInput: (v) => save(['music', id, 'vol'], v / 100) }));
             if (tracks.length > 1) {
               tracks.forEach((t, i) => open.append(row({ cls: 'mx-sub', label: `Track ${i + 1}`, sub: t.wave || 'square', key: `track-${id}-${i}`, min: 0, max: 100, value: DC2.mixer.toPos(t.v == null ? 0.1 : t.v), fmt: (p) => pc(DC2.mixer.toLevel(p)),
@@ -83,7 +84,7 @@
           if (!sounds.length) body.append(el('div', { class: 'empty' }, 'No sound effects in this game yet.'));
           for (const [id, sd] of sounds) {
             const dflt = 0.25;   // what the engine uses when a sound has no volume of its own
-            body.append(row({ head: el('div', { class: 'mx-l' }, btn('▶', () => { DC.Audio.unlock(); DC.Audio.play(id, this.doc.cart.sounds[id]); }, 'sq mx-play', 'play ' + id), el('div', null, el('b', null, id), el('small', null, sd.wave || 'square'))), label: id + ' volume', key: 'sound-' + id,
+            body.append(row({ head: el('div', { class: 'mx-l' }, btn('▶', () => { DC.Audio.unlock(); DC.Audio.play(id, this.doc.cart.sounds[id]); }, 'sq mx-play', 'play ' + id), el('div', null, el('b', null, id), el('small', null, sd.wave || 'square')), btn('✎', () => { this.closeSheet(sheet); this.openSfx(id); }, 'sq mx-edit', 'edit ' + id)), label: id + ' volume', key: 'sound-' + id,
               min: 0, max: 100, value: DC2.mixer.toPos(sd.v == null ? dflt : sd.v), fmt: (p) => pc(DC2.mixer.toLevel(p)), onInput: (p) => save(['sounds', id, 'v'], round3(DC2.mixer.toLevel(p))) }));
           }
 
@@ -103,5 +104,6 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     const b = $('#btnMixer'); if (b) b.onclick = () => app.openMixer();
+    const sm = $('#btnSoundMixer'); if (sm) sm.onclick = () => app.openMixer();
   });
 })();

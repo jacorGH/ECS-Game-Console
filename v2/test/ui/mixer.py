@@ -33,7 +33,7 @@ async def main():
         await pg.click('#tabs [data-tab=game]'); await pg.wait_for_timeout(250)
         txt = await ev("document.querySelector('#gameBody').textContent")
         ck('the Game tab has a Sound section with the counts', 'Sound' in txt and '2 songs' in txt and '9 sound effects' in txt and 'Music 100%' in txt, txt[-300:])
-        await pg.click('#gameBody button:has-text("Open the sound mixer")'); await pg.wait_for_timeout(300)
+        await pg.click('#gameBody button:has-text("Sound mixer")'); await pg.wait_for_timeout(300)
         ck('it opens the Sound mixer', await pg.locator('.sheet .sheet-title:has-text("Sound mixer")').count() == 1)
         heads = await ev("[...document.querySelectorAll('.sheet h3')].map(h => h.textContent)")
         ck('with a section each for balance, music, effects and this device', heads == ['Balance for this game', 'Music', 'Sound effects', 'On this device'], heads)

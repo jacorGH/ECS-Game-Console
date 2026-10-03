@@ -194,7 +194,7 @@ async def main():
 
         # control: prove the drag check can fail. Same drag on a page where the protection is switched off must select text.
         ctl = await (await b.new_context(viewport={'width': 390, 'height': 844})).new_page()
-        await ctl.route('**/nozoom.js', lambda r: r.abort())
+        await ctl.route('**/nozoom.js*', lambda r: r.abort())
         await ctl.goto(URL); await ctl.wait_for_selector('#btnNew'); await ctl.add_style_tag(content='html, body, body * { -webkit-user-select:text !important; user-select:text !important; }')
         await ctl.click('#btnNew'); await ctl.click('[data-tmpl=topdown]'); await ctl.wait_for_selector('#screenEditor:not([hidden])'); await ctl.click('#tabs [data-tab=play]'); await ctl.wait_for_timeout(400)
         h2 = await ctl.eval_on_selector('.bar h1', 'e => { const r = e.getBoundingClientRect(); return [r.left + 2, r.top + r.height / 2]; }')

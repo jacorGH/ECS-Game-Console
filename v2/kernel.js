@@ -42,6 +42,8 @@
   };
 
   /* Tile layers are stored as one string per row, two base-36 characters per tile (0 = empty). */
+  /* a placed map object's identity: the same object (unmoved, unchanged) has the same key before and after an edit */
+  DC2.objKey = (o) => JSON.stringify([o.prefab, o.x, o.y, o.c || null, o.v || null, o.tags || null]);
   DC2.decodeRows = (rows, w) => {
     const out = [];
     for (const r of rows) for (let i = 0; i < w; i++) out.push(parseInt(r.substr(i * 2, 2), 36));
@@ -464,6 +466,9 @@
     for (const [id, s] of Object.entries(cart.sounds || {})) {
       if (!isObj(s)) { cx.E(`sounds.${id}`, 'must be an object'); continue; }
       level(s.v, `sounds.${id}.v`, 'volume', 1);
+      if (s.wave !== undefined && !['sine', 'square', 'sawtooth', 'triangle', 'noise'].includes(s.wave)) cx.soft(`sounds.${id}.wave`, `unknown wave "${s.wave}" (it will play as a square wave). Use sine, square, sawtooth, triangle or noise`);
+      if (s.f !== undefined) { const fl = Array.isArray(s.f) ? s.f : [s.f]; if (!fl.length || fl.some((x) => !(Number(x) > 0))) cx.soft(`sounds.${id}.f`, 'pitch must be a number above 0, or a list of them (a slide, or steps)'); }
+      if (s.d !== undefined && !(Number(s.d) > 0)) cx.soft(`sounds.${id}.d`, 'length must be a number of seconds above 0');
       if (s.v > 0.9 && s.v <= 1) cx.soft(`sounds.${id}.v`, 'this is nearly full volume and may crackle; use the Sound mixer\'s effects level to make every effect louder instead');
     }
     /* music: a song is { bpm, div, vol, tracks: [{ wave, v, notes }] } (or a single track written directly) */
@@ -472,8 +477,20 @@
       if (!isObj(m)) { cx.E(`music.${id}`, 'must be an object'); continue; }
       level(m.vol, `music.${id}.vol`, 'song volume', 2);
       level(m.v, `music.${id}.v`, 'volume', 1);
+      if (m.bpm !== undefined && !(Number(m.bpm) >= 20 && Number(m.bpm) <= 400)) cx.E(`music.${id}.bpm`, 'tempo (beats per minute) must be a number from 20 to 400');
+      if (m.div !== undefined && !(Number.isInteger(Number(m.div)) && Number(m.div) >= 1 && Number(m.div) <= 8)) cx.E(`music.${id}.div`, 'steps per beat must be a whole number from 1 to 8');
+      if (m.loop !== undefined && typeof m.loop !== 'boolean') cx.E(`music.${id}.loop`, 'must be true or false');
       if (m.tracks !== undefined && !Array.isArray(m.tracks)) cx.E(`music.${id}.tracks`, 'must be a list of tracks');
-      (Array.isArray(m.tracks) ? m.tracks : []).forEach((t, i) => { if (!isObj(t)) cx.E(`music.${id}.tracks[${i}]`, 'must be an object'); else level(t.v, `music.${id}.tracks[${i}].v`, 'track volume', 1); });
+      /* every track: a wave, a volume, and notes written as words: C5  F#3  Bb4 (a note), a number (Hz / drum pitch), "." rest, "-" hold, "|" bar line */
+      const trackCheck = (t, P) => {
+        level(t.v, `${P}.v`, 'track volume', 1);
+        if (t.wave !== undefined && !['sine', 'square', 'sawtooth', 'triangle', 'noise'].includes(t.wave)) cx.soft(`${P}.wave`, `unknown wave "${t.wave}" (it will play as a square wave)`);
+        if (t.notes !== undefined && typeof t.notes !== 'string') { cx.E(`${P}.notes`, 'must be text like "C5 - E5 G5 . |"'); return; }
+        const bad = []; String(t.notes || '').split(/\s+/).filter((x) => x && x !== '|').forEach((w, i) => { if (w !== '.' && w !== '-' && !/^([A-Ga-g][#b]?-?\d|\d+(\.\d+)?)$/.test(w)) bad.push(`"${w}" at step ${i + 1}`); });
+        if (bad.length) cx.soft(`${P}.notes`, `${bad.slice(0, 3).join(', ')}${bad.length > 3 ? ` and ${bad.length - 3} more` : ''} ${bad.length === 1 ? 'is not a note, so it is' : 'are not notes, so they are'} silent. Notes look like C5, F#3, Bb4; "." is a rest and "-" holds the note before it`);
+      };
+      if (Array.isArray(m.tracks)) m.tracks.forEach((t, i) => { if (!isObj(t)) cx.E(`music.${id}.tracks[${i}]`, 'must be an object'); else trackCheck(t, `music.${id}.tracks[${i}]`); });
+      else if (m.tracks === undefined) trackCheck(m, `music.${id}`);
     }
 
     /* prefabs */
@@ -803,7 +820,7 @@
         const isPlayer = (this.cart.prefabs[o.prefab].tags || []).includes('player');
         if (isPlayer && !inst.spawn) { inst.spawn = { prefab: o.prefab, x: o.x, y: o.y }; inst.markers['@player'] = { x: o.x, y: o.y }; }
         if (isPlayer && carrying) continue;
-        this.spawn(o.prefab, { x: o.x, y: o.y, c: o.c, v: o.v, tags: o.tags }, inst);
+        this.spawn(o.prefab, { x: o.x, y: o.y, c: o.c, v: o.v, tags: o.tags }, inst).objKey = DC2.objKey(o);
       }
     }
     _enter(name, at, mode) {
@@ -884,8 +901,41 @@
         if (md && sc.map && (md.w !== sc.map.w || md.h !== sc.map.h)) { sc.map.w = md.w; sc.map.h = md.h; sc.map.layers = md.layers.map((L) => ({ name: L.name, collide: !!L.collide, ids: DC2.decodeRows(L.rows, md.w) })); notes.push(`map "${sd.map}" changed size, so its runtime tile edits were reset`); }
         else if (md && sc.map) for (const L of md.layers) if (!sc.map.layers.some((x) => x.name === L.name)) { sc.map.layers.push({ name: L.name, collide: !!L.collide, ids: DC2.decodeRows(L.rows, md.w) }); }
         if (md && sc.map) for (const L of sc.map.layers) { const nl = md.layers.find((x) => x.name === L.name); if (nl) L.collide = !!nl.collide; }
+        if (md && sc.map && sc.kind === 'scene') this._hotMap(sc, old, cart, notes);
       }
       return notes;
+    }
+    /* Apply what the author changed on this level's map to the running level, and nothing else:
+       - a tile that is different between the old and the new map is changed here too; a tile the GAME changed (a cut bush)
+         is left alone unless the author touched that very tile
+       - an object that was added is spawned, one that was deleted is removed, one that was moved is put back as a fresh
+         one at its new spot (its state starts over); everything the game is doing to the rest carries on */
+    _hotMap(sc, old, cart, notes) {
+      const sdNew = cart.scenes[sc.name], sdOld = old.scenes[sc.name], mdNew = sdNew && sdNew.map && cart.maps[sdNew.map], mdOld = sdOld && sdOld.map && old.maps[sdOld.map];
+      if (!mdNew || !mdOld) return;
+      if (sdNew.map !== sdOld.map) { notes.push(`level \"${sc.name}\" now uses a different map: restart to see it`); return; }
+      if (mdNew.w === mdOld.w && mdNew.h === mdOld.h) {
+        for (const L of sc.map.layers) {
+          const lo = mdOld.layers.find((x) => x.name === L.name), ln = mdNew.layers.find((x) => x.name === L.name); if (!lo || !ln) continue;
+          const a = DC2.decodeRows(lo.rows, mdOld.w), b = DC2.decodeRows(ln.rows, mdNew.w);
+          for (let i = 0; i < b.length; i++) if (a[i] !== b[i]) L.ids[i] = b[i];
+        }
+      }
+      const isPlayer = (o) => ((cart.prefabs[o.prefab] || old.prefabs[o.prefab] || {}).tags || []).includes('player');
+      const tally = (list) => { const m = new Map(); for (const o of list) m.set(DC2.objKey(o), (m.get(DC2.objKey(o)) || []).concat([o])); return m; };
+      const had = tally((mdOld.objects || []).filter((o) => o.prefab && !isPlayer(o))), has = tally((mdNew.objects || []).filter((o) => o.prefab && !isPlayer(o)));
+      let gone = 0, added = 0;
+      for (const [k, list] of had) for (let n = (has.has(k) ? has.get(k).length : 0); n < list.length; n++) {
+        const e = sc.ents.find((x) => !x.dead && x.objKey === k); if (e) { this.destroy(e); gone++; }
+      }
+      for (const [k, list] of has) for (let n = (had.has(k) ? had.get(k).length : 0); n < list.length; n++) {
+        const o = list[n]; if (!cart.prefabs[o.prefab]) continue;
+        this.spawn(o.prefab, { x: o.x, y: o.y, c: o.c, v: o.v, tags: o.tags }, sc).objKey = k; added++;
+      }
+      sc.markers = {};
+      for (const o of mdNew.objects || []) { if (o.name) sc.markers[o.name] = { x: o.x, y: o.y }; if (o.prefab && isPlayer(o) && !sc.markers['@player']) sc.markers['@player'] = { x: o.x, y: o.y }; }
+      if (gone) notes.push(`removed ${gone} thing${gone === 1 ? '' : 's'} you deleted from \"${sc.name}\"`);
+      if (added) notes.push(`added ${added} new thing${added === 1 ? '' : 's'} to \"${sc.name}\"`);
     }
     pushMode(mode, data) { this.queue({ type: 'mode', mode, data }); }
 

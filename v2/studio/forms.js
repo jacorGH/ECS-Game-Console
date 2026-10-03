@@ -156,6 +156,72 @@
     });
   };
 
+  /* ---- copy / cut / paste of rules and Do statements (the clipboard itself is in clip.js) */
+  const clipOf = (kind) => { const c = S.clip.get(); return c && c.kind === kind ? c : null; };
+  const doPaste = (ctx, c, path, index, owner) => {
+    const err = c.kind === 'rule' ? S.clip.checkRules(c.items, owner, ctx.reg) : S.clip.checkActions(c.items, ctx.reg);
+    if (err) { ctx.toast(err); return false; }
+    const at = S.clip.paste(ctx.doc, ctx.reg, path, index, c), bad = S.clip.problems(ctx.doc.cart, path, at, c.items.length);
+    ctx.toast(`Pasted ${S.clip.describe(c)}.` + (bad ? ` ${bad === 1 ? 'One thing in it points' : bad + ' things in it point'} to something this project doesn't have yet (marked in red).` : ''));
+    return true;
+  };
+  /* paste JSON from anywhere: another project, a note, a chat answer */
+  const pasteText = (ctx, kind, path, index, owner) => {
+    const s = ctx.sheet({ title: kind === 'rule' ? 'Paste a rule' : 'Paste a Do statement', render: (body) => {
+      const ta = el('textarea', { class: 'clip-text', rows: 8, spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'pasted text', placeholder: kind === 'rule' ? '{ "on": "button", "button": "a", "then": [ { "act": "sound", "id": "coin" } ] }' : '{ "act": "sound", "id": "coin" }' });
+      body.append(el('div', { class: 'f-doc' }, kind === 'rule' ? 'Paste a rule here as text: one you copied, one from another project, or one from a chat.' : 'Paste a Do statement here as text.'), ta,
+        el('div', { class: 'row-end' }, btn('Paste', () => {
+          const r = S.clip.parse(ta.value);
+          if (r.error) return ctx.toast(r.error);
+          if (r.kind !== (kind === 'rule' ? 'rule' : 'actions')) return ctx.toast(r.kind === 'rule' ? 'That is a whole rule. Paste it into a list of rules instead.' : 'That is a Do statement. Paste it into a “Then” list instead.');
+          if (doPaste(ctx, r, path, index, owner)) ctx.closeSheet(s);
+        }, 'primary')));
+    } });
+  };
+  const pasteBtn = (ctx, kind, path, owner) => {
+    const c = clipOf(kind);
+    return btn(c ? `📋 Paste ${S.clip.describe(c)}` : '📋 Paste from text…', () => (c ? doPaste(ctx, c, path, null, owner) : pasteText(ctx, kind, path, null, owner)), 'add');
+  };
+  const copyOut = (ctx, kind, items, what) => { try { S.clip.set(kind, items); ctx.toast(`Copied ${what}. Paste it anywhere.`); return true; } catch (e) { ctx.toast(e.message); return false; } };
+  const actionMenu = (ctx, a, listPath, i, n) => {
+    const ac = clipOf('actions'), list = S.getIn(ctx.doc.cart, listPath) || [], items = [
+      { id: 'copy', title: 'Copy this', doc: 'Then paste it into any rule, here or elsewhere' }, { id: 'cut', title: 'Cut this', doc: 'Copy it and take it out of here' },
+    ];
+    if (ac) items.push({ id: 'paste', title: `Paste ${S.clip.describe(ac)} below`, doc: 'Puts it right after this one' });
+    items.push({ id: 'dup', title: 'Duplicate', doc: 'A second copy right below' });
+    if (n > 1) items.push({ id: 'all', title: `Copy all ${n} in this list`, doc: 'Every Do statement in this “Then”' });
+    items.push({ id: 'text', title: 'Paste from text…', doc: 'JSON from another project or a chat' }, { id: 'del', title: 'Delete', doc: 'Remove this one' });
+    ctx.pick({ title: 'Do: ' + S.humanize(a.act || '?'), items, onPick: (id) => {
+      if (id === 'copy') copyOut(ctx, 'actions', [a], 'the action');
+      else if (id === 'cut') { if (copyOut(ctx, 'actions', [a], 'the action')) ctx.doc.remove(listPath, i, 'Cut action'); }
+      else if (id === 'paste') doPaste(ctx, ac, listPath, i + 1);
+      else if (id === 'dup') ctx.doc.insert(listPath, i + 1, S.clone(a), 'Duplicate action');
+      else if (id === 'all') copyOut(ctx, 'actions', list, `all ${n} actions`);
+      else if (id === 'text') pasteText(ctx, 'actions', listPath, i + 1);
+      else if (id === 'del') ctx.doc.remove(listPath, i);
+    } });
+  };
+  const ruleMenu = (ctx, r, path, listPath, i, owner) => {
+    const rc = clipOf('rule'), ac = clipOf('actions'), then = Array.isArray(r.then) ? r.then : [], items = [
+      { id: 'copy', title: 'Copy this rule', doc: 'Then paste it onto any thing or level, or into another project' }, { id: 'cut', title: 'Cut this rule', doc: 'Copy it and take it out of here' },
+    ];
+    if (rc) items.push({ id: 'paste', title: `Paste ${S.clip.describe(rc)} below`, doc: 'Puts it right after this rule' });
+    items.push({ id: 'dup', title: 'Duplicate', doc: 'A second copy right below' });
+    if (then.length) items.push({ id: 'copyThen', title: `Copy its ${then.length === 1 ? 'Do statement' : then.length + ' Do statements'}`, doc: 'Just the “Then” part, to paste into another rule' });
+    if (ac) items.push({ id: 'pasteThen', title: `Paste ${S.clip.describe(ac)} at the end of “Then”`, doc: 'Adds to this rule' });
+    items.push({ id: 'text', title: 'Paste a rule from text…', doc: 'JSON from another project or a chat' }, { id: 'del', title: 'Delete this rule', doc: 'Remove it' });
+    ctx.pick({ title: 'Rule: ' + S.humanize(r.on || '?'), items, onPick: (id) => {
+      if (id === 'copy') copyOut(ctx, 'rule', [r], 'the rule');
+      else if (id === 'cut') { if (copyOut(ctx, 'rule', [r], 'the rule')) ctx.doc.remove(listPath, i, 'Cut rule'); }
+      else if (id === 'paste') doPaste(ctx, rc, listPath, i + 1, owner);
+      else if (id === 'dup') ctx.doc.insert(listPath, i + 1, S.clone(r), 'Duplicate rule');
+      else if (id === 'copyThen') copyOut(ctx, 'actions', then, then.length === 1 ? 'the action' : `${then.length} actions`);
+      else if (id === 'pasteThen') doPaste(ctx, ac, path.concat('then'), null);
+      else if (id === 'text') pasteText(ctx, 'rule', listPath, i + 1, owner);
+      else if (id === 'del') ctx.doc.remove(listPath, i);
+    } });
+  };
+
   /* ---- actions: a list of cards */
   const groupOf = (def) => S.humanize(def.ext || 'core');
   F.actionsEditor = (ctx, actions, path, opt) => {
@@ -167,6 +233,7 @@
       title: 'What should happen?', items: Object.values(ctx.reg.actions).map((d) => ({ id: d.name, title: S.humanize(d.name), doc: d.doc, group: groupOf(d) })),
       onPick: (name) => ctx.doc.transact('Add action', () => { ctx.doc.insert(path, null, S.blankAction(name, cx(ctx))); S.ensureExt(ctx.doc, ctx.reg.actions[name].ext); }),
     }), 'add'));
+    box.append(pasteBtn(ctx, 'actions', path));
     return box;
   };
   F.actionCard = (ctx, a, path, listPath, i, n) => {
@@ -178,7 +245,8 @@
       ctx.doc.set(path, nu); S.ensureExt(ctx.doc, ctx.reg.actions[sel.value].ext);
     });
     card.append(el('div', { class: 'card-h' }, el('span', { class: 'tag' }, 'Do'), sel, el('span', { class: 'grow' }),
-      i > 0 ? btn('▲', () => ctx.doc.move(listPath, i, i - 1), 'sq', 'move up') : null, i < n - 1 ? btn('▼', () => ctx.doc.move(listPath, i, i + 1), 'sq', 'move down') : null, btn('✕', () => ctx.doc.remove(listPath, i), 'sq danger', 'remove')));
+      i > 0 ? btn('▲', () => ctx.doc.move(listPath, i, i - 1), 'sq', 'move up') : null, i < n - 1 ? btn('▼', () => ctx.doc.move(listPath, i, i + 1), 'sq', 'move down') : null,
+      btn('⋯', () => actionMenu(ctx, a, listPath, i, n), 'sq', 'copy, cut, paste'), btn('✕', () => ctx.doc.remove(listPath, i), 'sq danger', 'remove')));
     if (def) { if (def.doc) card.append(el('div', { class: 'f-doc' }, def.doc)); for (const f of S.describeAction(a.act, cx(ctx)).fields) card.append(F.field(ctx, f, a[f.key], path.concat(f.key))); }
     card.append(el('div', { class: 'card-issues' }));
     return card;
@@ -193,6 +261,7 @@
       title: 'When should something happen?', items: Object.values(ctx.reg.triggers).filter((t) => !t.owners || t.owners.includes(owner)).map((t) => ({ id: t.name, title: S.humanize(t.name), doc: t.doc, group: groupOf(t) })),
       onPick: (name) => ctx.doc.transact('Add rule', () => { ctx.doc.insert(path, null, S.blankRule(name, cx(ctx))); S.ensureExt(ctx.doc, ctx.reg.triggers[name].ext); }),
     }), 'add primary'));
+    box.append(pasteBtn(ctx, 'rule', path, owner));
     return box;
   };
   F.ruleCard = (ctx, r, path, listPath, i, n, owner) => {
@@ -205,7 +274,7 @@
     });
     card.append(el('div', { class: 'card-h' }, el('span', { class: 'tag when' }, 'When'), sel, el('span', { class: 'grow' }),
       i > 0 ? btn('▲', () => ctx.doc.move(listPath, i, i - 1), 'sq', 'move up') : null, i < n - 1 ? btn('▼', () => ctx.doc.move(listPath, i, i + 1), 'sq', 'move down') : null,
-      btn('⧉', () => ctx.doc.insert(listPath, i + 1, S.clone(r)), 'sq', 'duplicate'), btn('✕', () => ctx.doc.remove(listPath, i), 'sq danger', 'remove')));
+      btn('⋯', () => ruleMenu(ctx, r, path, listPath, i, owner), 'sq', 'copy, cut, paste, duplicate'), btn('✕', () => ctx.doc.remove(listPath, i), 'sq danger', 'remove')));
     if (r.doc) card.append(el('div', { class: 'f-doc note' }, r.doc));
     if (t) {
       if (t.doc) card.append(el('div', { class: 'f-doc' }, t.doc));

@@ -117,14 +117,10 @@
     },
     /* the same song is already playing: don't restart it, just pick up any volume changes (live mixing) */
     retune(def) { if (this.song) this.song.tracks.forEach((t, i) => { t.v = this.trackLevel(def, i); }); },
-    playMusic(name, def) {
-      if (this.songName === name && this.song) { if (def) this.retune(def); return; }
-      this.stopMusic();
-      if (!def) return;
-      if (!this.ctx) { this.pending = [name, def]; return; }
-      this.songName = name;
-      const bpm = +def.bpm || 120, div = +def.div || 2;
-      const step = 60 / bpm / div;
+    /* Turn a song definition into what the scheduler plays: per-track note tables (step -> {freq, length in steps}),
+       the length of a step in seconds, the loop length in steps. Used to start a song and to swap in an edited one. */
+    buildSong(def) {
+      const bpm = +def.bpm || 120, div = +def.div || 2, step = 60 / bpm / div;
       const trackDefs = Array.isArray(def.tracks) ? def.tracks : [def];
       const tracks = trackDefs.map((tr, ti) => {
         const toks = String(tr.notes || '').split(/\s+/).filter((x) => x && x !== '|');
@@ -138,9 +134,40 @@
         }
         return { wave: tr.wave || 'square', v: this.trackLevel(def, ti), len: toks.length, at };
       });
-      const total = Math.max(1, ...tracks.map((t) => t.len));
-      this.song = { tracks, step, total, pos: 0, next: this.ctx.currentTime + 0.06, loop: def.loop !== false };
+      return { tracks, step, total: Math.max(1, ...tracks.map((t) => t.len)), loop: def.loop !== false };
+    },
+    /* startAt: begin at this step instead of the start (used when an editor restarts a song where you were) */
+    playMusic(name, def, startAt) {
+      if (this.songName === name && this.song) { if (def) this.updateSong(def); return; }
+      this.stopMusic();
+      if (!def) return;
+      if (!this.ctx) { this.pending = [name, def]; return; }
+      this.songName = name;
+      const s = this.buildSong(def), at = Math.floor(+startAt) || 0;
+      const p0 = ((at % s.total) + s.total) % s.total, t0 = this.ctx.currentTime + 0.06;
+      this.song = Object.assign(s, { pos: p0, next: t0, p0, t0 });
       this.timer = setInterval(() => this.tick(), 25);
+    },
+    /* the song that is playing was edited (notes, tempo, volumes, loop): swap it in without restarting or losing the place */
+    updateSong(def) {
+      if (!this.song || !def) return false;
+      const s = this.buildSong(def);
+      Object.assign(this.song, { tracks: s.tracks, step: s.step, total: s.total, loop: s.loop });
+      if (this.song.pos >= s.total) this.song.pos %= s.total;
+      return true;
+    },
+    /* which step is being heard right now (a fraction), or -1 when no song is playing. The scheduler runs a little ahead
+       of the speakers, so this subtracts that head start. */
+    songPos() {
+      const s = this.song, c = this.ctx; if (!s || !c) return -1;
+      if (c.currentTime < s.t0) return s.p0;   // not audible yet: still at the starting step
+      const p = s.pos - Math.max(0, (s.next - c.currentTime) / s.step);
+      return ((p % s.total) + s.total) % s.total;
+    },
+    /* one short note on the music channel, to hear a pitch while composing */
+    blip(wave, freq, dur, v) {
+      if (!this.ctx || this.muted || !(freq > 0)) return;
+      this.tone({ wave: wave === 'noise' || WAVES.includes(wave) ? wave : 'square', v: v == null ? 0.12 : v }, freq, this.ctx.currentTime + 0.003, Math.max(0.04, dur || 0.2));
     },
     tick() {
       const s = this.song, c = this.ctx;

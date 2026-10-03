@@ -67,7 +67,8 @@ async def main():
         ck('no runtime errors', await ev("window.DC2_STUDIO.runner.world.errors.length")==0, await ev("window.DC2_STUDIO.runner.world.errors"))
         print('6. the door works (level 1 -> cave, player carried across)')
         await click('#tabs [data-tab=map]'); await click('#lvlBtn'); await click('[data-scene=level1]'); await pg.wait_for_timeout(200)
-        await click('#tabs [data-tab=play]'); await pg.wait_for_timeout(500)
+        await click('#tabs [data-tab=play]'); await pg.wait_for_timeout(300)
+        await click('#btnRestart'); await pg.wait_for_timeout(500)   # Play now carries on with the running game; Restart is how to start over
         await ev("(()=>{const w=window.DC2_STUDIO.runner.world,p=w.player(),d=window.DC2_STUDIO.doc.cart.maps.level1.objects.find(o=>o.prefab==='door');p.c.pos.x=d.x;p.c.pos.y=d.y})()")
         await pg.wait_for_timeout(500)
         sc=await ev("window.DC2_STUDIO.runner.world.active().name"); hp=await ev("window.DC2_STUDIO.runner.world.player().c.health.hp")
